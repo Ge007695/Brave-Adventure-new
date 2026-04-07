@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>勇者闯关：秘境征程</title>
+    <title>行至尽 Brave Adventure</title>
     <style>
         * {
             margin: 0;
@@ -15,7 +16,7 @@
         body {
             width: 100vw;
             height: 100vh;
-            background: linear-gradient(to bottom, #4fc3f7, #ffcc80);
+            background: #100e0a;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -24,11 +25,10 @@
             text-shadow: 2px 2px 4px #333;
         }
 
-        .logo {
-            font-size: 42px;
-            font-weight: bold;
-            color: #ffeb3b;
-            margin-bottom: 40px;
+        .logo img {
+            width: 400px;
+            height: 200px;
+            margin-bottom: 50px;
             text-align: center;
         }
 
@@ -49,7 +49,7 @@
             color: white;
             cursor: pointer;
             transition: 0.2s;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
         }
 
         .btn:hover {
@@ -65,9 +65,12 @@
         }
     </style>
 </head>
+
 <body>
 
-    <div class="logo">勇者闯关：秘境征程</div>
+    <div class="logo">
+        <img src="./picture-source/logo.png" alt="游戏logo">
+    </div>
 
     <div class="menu">
         <button class="btn">开始游戏</button>
@@ -84,4 +87,5 @@
     </div>
 
 </body>
+
 </html>
