@@ -1,5 +1,6 @@
 // LoginManager.ts
-import { _decorator, Component, Node, Button, Label, director } from 'cc';
+import { _decorator, Component, Node, Button, director,Vec3, UIOpacity } from 'cc';
+import { tween } from 'cc';
 const { ccclass, property } = _decorator;
 
 @ccclass('LoginManager')
@@ -29,11 +30,26 @@ export class LoginManager extends Component {
         this.btnSettings.on(Button.EventType.CLICK, this.onSettings, this);
     }
 
-    onStartGame() {
-        console.log("开始游戏");
-        // 这里可以跳转到游戏主场景
-        director.loadScene('GameScene'); // 假设你有 GameScene
-    }
+    // 在 LoginManager.ts 中找到 onStartGame 方法，修改为：
+onStartGame() {
+    console.log("开始游戏 -> 进入关卡选择");
+    
+    // ❌ 错误：这样会影响 Canvas 节点的透明度
+    // tween(this.node)  // this.node 是 Canvas
+    
+    // ✅ 正确：只对按钮或特定容器做动画
+    tween(this.btnStart)
+        .to(0.3, { scale: new Vec3(0.8, 0.8, 1) })
+        .call(() => {
+            director.loadScene('LevelSelect', (err) => {
+                if (err) {
+                    console.error('加载失败:', err);
+                    alert('关卡选择场景加载失败');
+                }
+            });
+        })
+        .start();
+}
 
     onLogin() {
         console.log("登录账号");
