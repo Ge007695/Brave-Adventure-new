@@ -91,8 +91,15 @@ export class LevelSelectManager extends Component {
             .to(0.2, { scale: new Vec3(0.95, 0.95, 1) })
             .to(0.2, { scale: new Vec3(1, 1, 1) })
             .call(() => {
-                // 加载对应关卡场景
-                director.loadScene(`assets/scenes/Level_${levelId}.scene`, (err) => {
+                // 加载对应关卡场景 - 重点修改：第一关指向Level-one
+                let sceneName = '';
+                if (levelId === 1) {
+                    sceneName = 'Level-one'; // 第一关场景名改为Level-one
+                } else {
+                    sceneName = `assets/scenes/Level_${levelId}.scene`; // 其他关卡保持原有逻辑
+                }
+
+                director.loadScene(sceneName, (err) => {
                     if (err) {
                         console.error(`加载关卡 ${levelId} 失败:`, err);
                         alert(`关卡 ${levelId} 正在开发中！`);
@@ -104,7 +111,7 @@ export class LevelSelectManager extends Component {
 
     // 返回登录界面
     onBackToLogin() {
-    // 使用你的实际文件名
-    director.loadScene('loginscene');
-}
+        // 使用你的实际文件名
+        director.loadScene('loginscene');
+    }
 }
