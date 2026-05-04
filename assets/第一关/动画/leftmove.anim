@@ -1,7 +1,7 @@
 [
   {
     "__type__": "cc.AnimationClip",
-    "_name": "background",
+    "_name": "leftmove",
     "_objFlags": 0,
     "__editorExtras__": {
       "embeddedPlayerGroups": []
@@ -67,15 +67,15 @@
     ],
     "_values": [
       {
-        "__uuid__": "d79cefd7-96e4-4a97-a853-617e3e7a7b68@f9941",
+        "__uuid__": "d4d33cfd-b5f9-486f-94b4-a3eb1e388fcb@f9941",
         "__expectedType__": "cc.SpriteFrame"
       },
       {
-        "__uuid__": "ee605103-a6e4-4f53-9551-df6a15dd3d54@f9941",
+        "__uuid__": "d3060b38-87ff-48ee-ad41-5627b143b877@f9941",
         "__expectedType__": "cc.SpriteFrame"
       },
       {
-        "__uuid__": "6d6dc333-cd8b-4bcd-8ff8-16e347906e2c@f9941",
+        "__uuid__": "9cc5f599-787c-4e7d-9527-ac2301671dd2@f9941",
         "__expectedType__": "cc.SpriteFrame"
       }
     ]
