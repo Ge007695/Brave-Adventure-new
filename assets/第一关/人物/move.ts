@@ -109,8 +109,8 @@ export class move extends Component {
         // 只有当跳跃次数已达到上限且持续稳定时才认为落地
         if (!this.canJump && isNearZero && isPosStable) {
             this.stableFrames++;
-            // 需要连续稳定5帧才认为真正落地（防止误判）
-            if (this.stableFrames >= 5) {
+            // 需要连续稳定3帧才认为真正落地（防止误判）
+            if (this.stableFrames >= 3) {
                 this.jumpCount = 0;
                 this.canJump = true;
                 this.stableFrames = 0;
