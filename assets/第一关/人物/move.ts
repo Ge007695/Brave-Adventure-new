@@ -1,4 +1,4 @@
-import { _decorator, Component, RigidBody2D, Vec2, PhysicsSystem2D, Animation } from 'cc';
+import { _decorator, Component, RigidBody2D, Vec2, PhysicsSystem2D, Animation, Node } from 'cc';
 const { ccclass, property } = _decorator;
 
 @ccclass('move')
@@ -27,6 +27,14 @@ export class move extends Component {
     private isAttacking: boolean = false;
     private attackCD: number = 0.5;
     private attackTimer: number = 0;
+
+    /** 攻击检测范围 */
+    @property
+    attackRange: number = 100;
+
+    /** 攻击伤害值 */
+    @property
+    attackDamage: number = 1;
 
     private onKeyDownHandler!: (e: KeyboardEvent) => void;
     private onKeyUpHandler!: (e: KeyboardEvent) => void;
@@ -103,7 +111,7 @@ export class move extends Component {
         
         if (!this.canJump && isNearZero && isPosStable) {
             this.stableFrames++;
-            if (this.stableFrames >= 2) {
+            if (this.stableFrames >= 1.5) {
                 this.jumpCount = 0;
                 this.canJump = true;
                 this.stableFrames = 0;
@@ -165,6 +173,11 @@ export class move extends Component {
             
             this.animation.play(attackAnim);
 
+            // ✅ 在动画播放到一半时检测伤害
+            this.scheduleOnce(() => {
+                this.checkAttackHit();
+            }, 0.15);
+
             setTimeout(() => {
                 this.isAttacking = false;
             }, 350);
@@ -199,7 +212,42 @@ export class move extends Component {
         }
         this.animation.stop();
     }
-    
+
+    /**
+     * ✅ 检测攻击是否命中小怪
+     */
+    private checkAttackHit() {
+        const myPos = this.node.worldPosition;
+        const attackDir = this.lastFaceRight ? 1 : -1;
+        const attackX = myPos.x + attackDir * 80;
+
+        const canvas = this.node.parent;
+        if (!canvas) return;
+
+        let hitCount = 0;
+        for (const child of canvas.children) {
+            if (child === this.node) continue;
+            if (!child.name.includes('小怪')) continue;
+
+            const childPos = child.worldPosition;
+            const dx = Math.abs(childPos.x - attackX);
+            const dy = Math.abs(childPos.y - myPos.y);
+
+            if (dx < 80 && dy < 120) {
+                const takeHitFn = (child as any).takeHit;
+                if (typeof takeHitFn === 'function') {
+                    takeHitFn.call(child);
+                    hitCount++;
+                    console.log(`⚔️ 攻击命中小怪: ${child.name}！`);
+                }
+            }
+        }
+
+        if (hitCount === 0) {
+            console.log('⚔️ 攻击未命中');
+        }
+    }
+
     onCollisionEnter(other: any) {}
     onCollisionExit(other: any) {}
 

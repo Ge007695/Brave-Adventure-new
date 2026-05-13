@@ -1,311 +1,360 @@
-import { _decorator, Component, Node, Sprite, SpriteFrame, Collider2D, IPhysics2DContact, Vec3, tween, UITransform, BoxCollider2D, RigidBody2D, Vec2, PhysicsSystem2D, EPhysics2DDrawFlags } from 'cc';
+import { _decorator, Component, Sprite, SpriteFrame, Node, Color, UITransform } from 'cc';
 import { GameOverUI } from './GameOverUI';
+import { PlayerStats } from '../人物/PlayerStats';
+import { InkBullet } from './InkBullet';
 const { ccclass, property } = _decorator;
 
-/**
- * 墨汁子弹脚本
- * 墨汁向前飞行，碰到人物触发游戏失败，碰到其他物体或飞行一段时间后消失
- */
-@ccclass('InkBullet')
-export class InkBullet extends Component {
-    /** 飞行速度 */
-    private speed: number = 400;
-    /** 飞行方向（-1=向左，1=向右） */
-    private direction: number = -1;
-    /** 最大存活时间（秒） */
-    private maxLifetime: number = 3;
-    /** 已存活时间 */
-    private lifetime: number = 0;
-    /** 是否已经触发碰撞 */
-    private isTriggered: boolean = false;
-    /** 所属章鱼的 gameOverUI 引用 */
-    private gameOverUI: GameOverUI | null = null;
-
-    /**
-     * 初始化墨汁子弹
-     * @param dir 飞行方向 -1=向左，1=向右
-     * @param speed 飞行速度
-     * @param ui 闯关失败界面引用
-     */
-    init(dir: number, speed: number, ui: GameOverUI | null) {
-        this.direction = dir;
-        this.speed = speed;
-        this.gameOverUI = ui;
-    }
-
-    start() {
-        // 确保墨汁有碰撞组件
-        let collider = this.getComponent(Collider2D);
-        if (!collider) {
-            // 如果没有碰撞组件，自动添加 BoxCollider2D
-            const boxCollider = this.addComponent(BoxCollider2D);
-            const transform = this.getComponent(UITransform);
-            if (transform) {
-                boxCollider.size = transform.contentSize;
-            }
-        }
-    }
-
-    update(deltaTime: number) {
-        if (this.isTriggered) return;
-
-        // 更新存活时间
-        this.lifetime += deltaTime;
-        if (this.lifetime >= this.maxLifetime) {
-            this.destroyBullet();
-            return;
-        }
-
-        // 向前飞行
-        const pos = this.node.position;
-        this.node.setPosition(pos.x + this.direction * this.speed * deltaTime, pos.y, pos.z);
-    }
-
-    /**
-     * 碰撞回调 - 墨汁碰到人物触发失败，碰到其他物体消失
-     */
-    onCollisionEnter(otherCollider: Collider2D, selfCollider: Collider2D, contact: IPhysics2DContact) {
-        if (this.isTriggered) return;
-        this.isTriggered = true;
-
-        // 禁用物理接触
-        contact.disabled = true;
-
-        // 判断碰撞对象是否是人物（通过节点名称或标签判断）
-        const otherNode = otherCollider.node;
-        // 人物节点通常有 move 脚本或 RigidBody2D 且不是静态的
-        const isPlayer = otherNode.getComponent('move') !== null 
-            || otherNode.name.includes('右移') 
-            || otherNode.name.includes('人物');
-
-        if (isPlayer) {
-            console.log('💥 墨汁击中人物！');
-            // 显示闯关失败界面
-            if (this.gameOverUI) {
-                this.gameOverUI.show();
-            }
-        }
-
-        // 墨汁碰到任何物体都消失
-        this.destroyBullet();
-    }
-
-    /**
-     * 销毁墨汁子弹
-     */
-    private destroyBullet() {
-        // 添加一个简单的消失动画效果
-        tween(this.node)
-            .to(0.1, { scale: new Vec3(0, 0, 0) })
-            .call(() => {
-                this.node.destroy();
-            })
-            .start();
-    }
-}
-
-
-/**
- * 章鱼小怪脚本
- * 章鱼静止不动，面向左方
- * 当检测到人物靠近到一定距离时，向左边发射墨汁攻击
- * 人物碰到墨汁会触发游戏失败
- */
 @ccclass('Octopus')
 export class Octopus extends Component {
-    // ==================== 可调节参数 ====================
+    @property(SpriteFrame) octopusSprite: SpriteFrame | null = null;
+    @property({ type: GameOverUI }) gameOverUI: GameOverUI | null = null;
+    @property expReward: number = 1;
+    @property maxHp: number = 1;
 
-    /** 章鱼的 SpriteFrame（拖入章鱼.png） */
-    @property(SpriteFrame)
-    octopusSprite: SpriteFrame | null = null;
+    // ===== 移动（全部世界坐标） =====
+    @property({ tooltip: '移动速度(像素/秒)' }) moveSpeedX: number = 80;
+    @property({ tooltip: '世界左边界' }) leftBound: number = 100;
+    @property({ tooltip: '世界右边界' }) rightBound: number = 1180;
+    @property({ tooltip: '距边界多少像素回头' }) boundaryMargin: number = 60;
+    @property({ tooltip: '最短移动时间(秒)' }) minMoveTime: number = 1.0;
+    @property({ tooltip: '最长移动时间(秒)' }) maxMoveTime: number = 3.0;
+    @property({ tooltip: '最短停顿时间(秒)' }) minIdleTime: number = 0.3;
+    @property({ tooltip: '最长停顿时间(秒)' }) maxIdleTime: number = 1.0;
 
-    /** 墨汁的 SpriteFrame（拖入 ink.png） */
-    @property(SpriteFrame)
-    inkSprite: SpriteFrame | null = null;
+    // ===== 跳跃 =====
+    @property jumpForce: number = 400;
+    @property gravity: number = 800;
+    @property({ tooltip: '世界地面Y坐标' }) groundY: number = 100;
+    @property({ tooltip: '跳跃最短间隔(秒)' }) minJumpInterval: number = 2.0;
+    @property({ tooltip: '跳跃最长间隔(秒)' }) maxJumpInterval: number = 5.0;
 
-    /** 检测人物的距离（像素），人物进入此范围章鱼会攻击 */
-    @property
-    detectDistance: number = 400;
+    // ===== 攻击 =====
+    @property({ tooltip: '世界坐标攻击范围' }) attackRange: number = 300;
+    @property({ tooltip: '攻击冷却(秒)' }) attackCooldown: number = 1.5;
 
-    /** 攻击冷却时间（秒） */
-    @property
-    attackCooldown: number = 1;
-
-    /** 墨汁飞行速度 */
-    @property
-    inkSpeed: number = 400;
-
-    /** 闯关失败界面节点 */
-    @property({ type: GameOverUI, tooltip: '拖入场景中的 GameOverUI 节点' })
-    gameOverUI: GameOverUI | null = null;
-
-    // ==================== 内部状态 ====================
-
-    /** Sprite 组件引用 */
+    // ===== 内部状态 =====
     private sprite: Sprite | null = null;
+    private isDead: boolean = false;
+    private velocityY: number = 0;
+    private isGrounded: boolean = true;
 
-    /** 攻击计时器 */
+    // 漫游方向 & 精灵朝向（完全分离）
+    private roamDir: number = 1;
+    private faceDir: number = 1;
+    private attackFaceLeft: number = 0;
+
+    private moveState: 'idle' | 'moving' = 'idle';
+    private stateTimer: number = 0;
+
+    // 跳跃
+    private jumpTimer: number = 0;
+    private jumpCooldown: number = 3;
+
+    // 攻击
     private attackTimer: number = 0;
 
-    /** 人物节点引用（会在场景中查找） */
-    private playerNode: Node | null = null;
+    // 子弹
+    private inkBullets: Node[] = [];
+    private maxInkBullets: number = 5;
+    private _origMaxHp: number = 1;
 
-    /** 墨汁预制体节点（用于复用） */
-    private inkPrefab: Node | null = null;
+    private readonly VER: string = 'V8-WORLDCOORD';
+
+    // ==================== 辅助：世界坐标读写 ====================
+
+    private get worldX(): number { return this.node.worldPosition.x; }
+    private get worldY(): number { return this.node.worldPosition.y; }
+    private setWorldX(x: number) {
+        const wp = this.node.worldPosition;
+        this.node.setWorldPosition(x, wp.y, wp.z);
+    }
+    private setWorldY(y: number) {
+        const wp = this.node.worldPosition;
+        this.node.setWorldPosition(wp.x, y, wp.z);
+    }
+    private setWorldXY(x: number, y: number) {
+        const wp = this.node.worldPosition;
+        this.node.setWorldPosition(x, y, wp.z);
+    }
+
+    // ==================== 生命周期 ====================
 
     start() {
-        // 获取 Sprite 组件
+        const sl = this.leftBound + this.boundaryMargin;
+        const sr = this.rightBound - this.boundaryMargin;
+
+        console.log('═══════════════════════════════');
+        console.log('🐙 章鱼脚本: ' + this.VER);
+        console.log('  边界: [' + this.leftBound + ', ' + this.rightBound + '] 边距=' + this.boundaryMargin);
+        console.log('  安全区: [' + sl + ', ' + sr + ']');
+        console.log('  当前 worldPosition=' + this.worldX.toFixed(0) + ' localPosition=' + this.node.position.x.toFixed(0));
+
         this.sprite = this.getComponent(Sprite);
-        if (!this.sprite) {
-            console.error('❌ 章鱼找不到 Sprite 组件！请确保已添加 Sprite 组件');
+        if (!this.sprite) { console.error('❌ 无Sprite'); return; }
+        if (this.octopusSprite) this.sprite.spriteFrame = this.octopusSprite;
+
+        this._origMaxHp = this.maxHp;
+
+        // ★ 钳制初始世界位置到安全区
+        const wx = this.worldX;
+        if (wx < sl || wx > sr) {
+            const cx = Math.max(sl, Math.min(sr, wx));
+            this.setWorldX(cx);
+            console.log('🔧 钳制初始世界位置: ' + wx.toFixed(0) + ' → ' + cx.toFixed(0));
+        }
+
+        this.attackTimer = 1 + Math.random();
+        this.jumpTimer = Math.random() * this.minJumpInterval;
+        this.jumpCooldown = this.minJumpInterval + Math.random() * (this.maxJumpInterval - this.minJumpInterval);
+
+        this.roamDir = Math.random() > 0.5 ? 1 : -1;
+        this.faceDir = this.roamDir;
+        this.enterMoving();
+
+        console.log('═══════════════════════════════');
+    }
+
+    update(dt: number) {
+        if (!this.sprite || this.isDead) return;
+
+        this.attackTimer += dt;
+        this.jumpTimer += dt;
+
+        // 攻击面朝计时器
+        if (this.attackFaceLeft > 0) {
+            this.attackFaceLeft -= dt;
+            if (this.attackFaceLeft <= 0) {
+                this.faceDir = this.roamDir;
+            }
+        }
+
+        // 攻击
+        const player = this.findPlayer();
+        if (player) {
+            const dist = this.getDist(player);
+            console.log('🔍 玩家距离: ' + dist.toFixed(0) + ' 攻击范围: ' + this.attackRange + ' 冷却: ' + this.attackTimer.toFixed(1) + '/' + this.attackCooldown);
+            if (dist < this.attackRange && this.attackTimer >= this.attackCooldown) {
+                console.log('⚔️ 发动攻击！');
+                this.doAttack(player);
+            }
+        }
+
+        // 漫游
+        this.updateRoam(dt);
+
+        // 跳跃
+        if (this.jumpTimer >= this.jumpCooldown && this.isGrounded) {
+            this.doJump();
+            this.jumpTimer = 0;
+            this.jumpCooldown = this.minJumpInterval + Math.random() * (this.maxJumpInterval - this.minJumpInterval);
+        }
+
+        // 重力（世界Y坐标）
+        this.velocityY -= this.gravity * dt;
+        let ny = this.worldY + this.velocityY * dt;
+        if (ny <= this.groundY) {
+            ny = this.groundY;
+            this.velocityY = 0;
+            this.isGrounded = true;
+        } else {
+            this.isGrounded = false;
+        }
+        this.setWorldY(ny);
+
+        // 翻转精灵
+        const sx = this.node.scale.x;
+        const tsx = this.faceDir > 0 ? Math.abs(sx) : -Math.abs(sx);
+        if (Math.abs(sx - tsx) > 0.001) {
+            this.node.setScale(tsx, this.node.scale.y, this.node.scale.z);
+        }
+    }
+
+    // ==================== 漫游 ====================
+
+    private updateRoam(dt: number) {
+        const sl = this.leftBound + this.boundaryMargin;
+        const sr = this.rightBound - this.boundaryMargin;
+        const wx = this.worldX;
+
+        if (this.moveState === 'idle') {
+            this.stateTimer -= dt;
+            if (this.stateTimer <= 0) this.enterMoving();
             return;
         }
 
-        // 设置章鱼图片
-        if (this.octopusSprite) {
-            this.sprite.spriteFrame = this.octopusSprite;
+        // 移动状态
+        this.stateTimer -= dt;
+        if (this.stateTimer <= 0) { this.enterIdle(); return; }
+
+        // 已在边界外 → 翻转漫游方向
+        if (wx >= sr && this.roamDir > 0) {
+            this.roamDir = -1;
+            if (this.attackFaceLeft <= 0) this.faceDir = this.roamDir;
+        } else if (wx <= sl && this.roamDir < 0) {
+            this.roamDir = 1;
+            if (this.attackFaceLeft <= 0) this.faceDir = this.roamDir;
+        }
+
+        // 计算新世界X
+        let nx = wx + this.roamDir * this.moveSpeedX * dt;
+
+        // 边界钳制
+        if (nx > sr) {
+            nx = sr;
+            this.roamDir = -1;
+            if (this.attackFaceLeft <= 0) this.faceDir = this.roamDir;
+        } else if (nx < sl) {
+            nx = sl;
+            this.roamDir = 1;
+            if (this.attackFaceLeft <= 0) this.faceDir = this.roamDir;
+        }
+
+        this.setWorldX(nx);
+    }
+
+    private enterMoving() {
+        this.moveState = 'moving';
+        const wx = this.worldX;
+        const sl = this.leftBound + this.boundaryMargin;
+        const sr = this.rightBound - this.boundaryMargin;
+
+        // 智能选方向
+        const distL = wx - sl;
+        const distR = sr - wx;
+
+        if (distL < 5) {
+            this.roamDir = 1;
+        } else if (distR < 5) {
+            this.roamDir = -1;
         } else {
-            console.error('❌ 章鱼未设置 octopusSprite！请在属性面板中拖入章鱼.png 的 SpriteFrame');
+            this.roamDir = Math.random() > 0.5 ? 1 : -1;
         }
 
-        // 查找人物节点（在 Canvas 下查找带有 move 脚本的节点）
-        this.findPlayerNode();
+        if (this.attackFaceLeft <= 0) {
+            this.faceDir = this.roamDir;
+        }
 
-        // 创建墨汁预制体模板
-        this.createInkPrefab();
+        this.stateTimer = this.minMoveTime + Math.random() * (this.maxMoveTime - this.minMoveTime);
+        console.log('▶️  移动 ' + this.stateTimer.toFixed(1) + '秒 方向=' +
+            (this.roamDir > 0 ? '右' : '左') + ' worldX=' + wx.toFixed(0) +
+            ' 安全区=[' + sl.toFixed(0) + ',' + sr.toFixed(0) + ']');
     }
 
-    update(deltaTime: number) {
-        // 更新攻击计时器
-        if (this.attackTimer > 0) {
-            this.attackTimer -= deltaTime;
-        }
-
-        // 如果没有找到人物节点，继续查找
-        if (!this.playerNode) {
-            this.findPlayerNode();
-            return;
-        }
-
-        // 检测人物距离
-        const distance = this.getDistanceToPlayer();
-        if (distance <= this.detectDistance && this.attackTimer <= 0) {
-            this.fireInk();
-            this.attackTimer = this.attackCooldown;
-        }
+    private enterIdle() {
+        this.moveState = 'idle';
+        this.stateTimer = this.minIdleTime + Math.random() * (this.maxIdleTime - this.minIdleTime);
+        console.log('⏸️  停顿 ' + this.stateTimer.toFixed(1) + '秒 worldX=' + this.worldX.toFixed(0));
     }
 
-    /**
-     * 查找场景中的人物节点
-     */
-    private findPlayerNode() {
-        // 获取场景根节点
-        const canvas = this.node.parent;
-        if (!canvas) return;
+    // ==================== 跳跃 ====================
 
-        // 遍历 Canvas 的子节点，查找带有 move 脚本的节点
-        for (const child of canvas.children) {
-            if (child.getComponent('move')) {
-                this.playerNode = child;
-                console.log('🐙 章鱼找到人物节点:', child.name);
-                break;
-            }
-        }
+    private doJump() {
+        if (!this.isGrounded) return;
+        this.velocityY = this.jumpForce;
+        this.isGrounded = false;
+        console.log('🦘 跳跃！');
+    }
 
-        // 如果没找到，尝试通过名称查找
-        if (!this.playerNode) {
-            // 查找名称包含"右移"或"人物"的节点
-            for (const child of canvas.children) {
-                if (child.name.includes('右移') || child.name.includes('人物')) {
-                    this.playerNode = child;
-                    console.log('🐙 章鱼通过名称找到人物节点:', child.name);
-                    break;
-                }
-            }
+    // ==================== 攻击 ====================
+
+    private doAttack(player: Node) {
+        this.attackTimer = 0;
+        console.log('⚔️ 章鱼攻击玩家！');
+
+        const dir = player.worldPosition.x > this.worldX ? 1 : -1;
+        this.faceDir = dir;
+        this.attackFaceLeft = 0.4;
+
+        const stats = player.getComponent(PlayerStats);
+        if (stats) {
+            stats.takeDamage(25);
+            console.log('💥 玩家扣血！');
         }
     }
 
-    /**
-     * 计算章鱼到人物的距离
-     */
-    private getDistanceToPlayer(): number {
-        if (!this.playerNode) return Infinity;
-
-        const myPos = this.node.worldPosition;
-        const playerPos = this.playerNode.worldPosition;
-
-        const dx = playerPos.x - myPos.x;
-        const dy = playerPos.y - myPos.y;
-
-        return Math.sqrt(dx * dx + dy * dy);
+    private fireInk(dir: number) {
     }
 
-    /**
-     * 创建墨汁预制体模板
-     */
-    private createInkPrefab() {
-        this.inkPrefab = new Node('InkBullet');
-        
-        // 添加 UITransform
-        const transform = this.inkPrefab.addComponent(UITransform);
-        transform.setContentSize(40, 40);
+    // ==================== 工具 ====================
 
-        // 添加 Sprite 组件
-        const sprite = this.inkPrefab.addComponent(Sprite);
-        if (this.inkSprite) {
-            sprite.spriteFrame = this.inkSprite;
+    private findPlayer(): Node | null {
+        let root = this.node;
+        while (root.parent) {
+            root = root.parent;
         }
-
-        // 添加 BoxCollider2D 用于碰撞检测
-        const collider = this.inkPrefab.addComponent(BoxCollider2D);
-        collider.size = transform.contentSize;
-
-        // 添加 InkBullet 脚本
-        this.inkPrefab.addComponent(InkBullet);
-
-        // 初始设置为非激活
-        this.inkPrefab.active = false;
+        const player = this.searchForPlayer(root);
+        if (!player) {
+            console.warn('❌ Octopus: 没找到玩家！');
+        }
+        return player;
     }
 
-    /**
-     * 发射墨汁
-     */
-    private fireInk() {
-        if (!this.inkPrefab || !this.inkSprite) return;
-
-        console.log('🐙 章鱼发射墨汁！');
-
-        // 克隆墨汁节点
-        const inkNode = new Node('InkBullet');
-        
-        // 复制组件
-        const transform = inkNode.addComponent(UITransform);
-        transform.setContentSize(40, 40);
-
-        const sprite = inkNode.addComponent(Sprite);
-        sprite.spriteFrame = this.inkSprite;
-
-        const collider = inkNode.addComponent(BoxCollider2D);
-        collider.size = transform.contentSize;
-
-        // 添加 InkBullet 脚本并初始化
-        const inkScript = inkNode.addComponent(InkBullet);
-        inkScript.init(-1, this.inkSpeed, this.gameOverUI); // 章鱼面向左，所以方向为 -1
-
-        // 设置墨汁的初始位置（章鱼的位置，稍微偏左一点）
-        const myPos = this.node.worldPosition;
-        inkNode.setPosition(myPos.x - 50, myPos.y, myPos.z);
-
-        // 将墨汁添加到 Canvas 下（与章鱼同级）
-        const canvas = this.node.parent;
-        if (canvas) {
-            canvas.addChild(inkNode);
-        } else {
-            // 如果找不到 Canvas，就添加到场景根节点
-            const scene = this.node.scene;
-            if (scene) {
-                scene.addChild(inkNode);
-            }
+    private searchForPlayer(node: Node): Node | null {
+        if (node.getComponent('move')) {
+            return node;
         }
+        for (const child of node.children) {
+            const found = this.searchForPlayer(child);
+            if (found) return found;
+        }
+        return null;
+    }
+
+    private getDist(p: Node): number {
+        const a = this.node.worldPosition, b = p.worldPosition;
+        return Math.sqrt((b.x - a.x) ** 2 + (b.y - a.y) ** 2);
+    }
+
+    public removeInkBullet(ink: Node) {
+        const i = this.inkBullets.indexOf(ink);
+        if (i > -1) this.inkBullets.splice(i, 1);
+        if (ink && ink.isValid) ink.destroy();
+    }
+
+    // ==================== 受击/死亡 ====================
+
+    public takeHit() {
+        if (this.isDead) return;
+        this.maxHp--;
+        if (this.maxHp <= 0) { this.die(); return; }
+        if (this.sprite) {
+            const o = this.sprite.color.clone();
+            this.sprite.color = new Color(255, 255, 255);
+            setTimeout(() => { if (this.sprite) this.sprite.color = o; }, 100);
+        }
+    }
+
+    private die() {
+        if (this.isDead) return;
+        this.isDead = true;
+        this.addExp();
+        for (const ink of this.inkBullets) ink.destroy();
+        this.inkBullets = [];
+        this.node.active = false;
+        setTimeout(() => {
+            this.isDead = false;
+            this.maxHp = this._origMaxHp;
+            this.node.active = true;
+            const sl = this.leftBound + this.boundaryMargin;
+            const sr = this.rightBound - this.boundaryMargin;
+            const cx = Math.max(sl, Math.min(sr, this.worldX));
+            this.setWorldX(cx);
+            this.roamDir = Math.random() > 0.5 ? 1 : -1;
+            this.faceDir = this.roamDir;
+            this.attackFaceLeft = 0;
+            this.enterIdle();
+        }, 5000);
+    }
+
+    private addExp() {
+        const p = this.findPlayer();
+        if (!p) return;
+        let s = p.getComponent(PlayerStats);
+        if (!s) s = p.addComponent(PlayerStats);
+        s.addExperience(this.expReward);
+    }
+
+    protected onDestroy() {
+        for (const ink of this.inkBullets) ink.destroy();
     }
 }

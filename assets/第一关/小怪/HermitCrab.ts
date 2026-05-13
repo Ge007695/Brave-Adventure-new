@@ -1,5 +1,6 @@
-import { _decorator, Component, Sprite, SpriteFrame, Collider2D, IPhysics2DContact } from 'cc';
+import { _decorator, Component, Sprite, SpriteFrame, Collider2D, IPhysics2DContact, Color } from 'cc';
 import { GameOverUI } from './GameOverUI';
+import { PlayerStats } from '../人物/PlayerStats';
 const { ccclass, property } = _decorator;
 
 /**
@@ -19,6 +20,17 @@ export class HermitCrab extends Component {
     /** 闯关失败界面节点（在场景中拖入 GameOverUI 节点） */
     @property({ type: GameOverUI, tooltip: '拖入场景中的 GameOverUI 节点' })
     gameOverUI: GameOverUI | null = null;
+
+    /** 击败后获得的经验值 */
+    @property
+    expReward: number = 1;
+
+    /** 小怪血量（被攻击多少次死亡） */
+    @property
+    maxHp: number = 1;
+
+    /** 小怪是否死亡 */
+    private isDead: boolean = false;
 
     // ==================== 内部状态 ====================
 
@@ -45,24 +57,96 @@ export class HermitCrab extends Component {
     }
 
     /**
+     * 当被人物攻击时调用
+     */
+    public takeHit() {
+        if (this.isDead) return;
+
+        this.maxHp--;
+        console.log(`💥 寄居蟹受到攻击，剩余血量: ${this.maxHp}`);
+
+        if (this.maxHp <= 0) {
+            this.die();
+        } else {
+            this.flashOnHit();
+        }
+    }
+
+    private flashOnHit() {
+        if (!this.sprite) return;
+        const originalColor = this.sprite.color.clone();
+        this.sprite.color = new Color(255, 255, 255);
+
+        setTimeout(() => {
+            if (this.sprite) {
+                this.sprite.color = originalColor;
+            }
+        }, 100);
+    }
+
+    private die() {
+        if (this.isDead) return;
+        this.isDead = true;
+
+        console.log(`💀 寄居蟹被击败！`);
+
+        this.addExpToPlayer();
+
+        this.node.active = false;
+
+        setTimeout(() => {
+            this.isDead = false;
+            this.maxHp = this._originalMaxHp;
+            this.node.active = true;
+        }, 5000);
+    }
+
+    private _originalMaxHp: number = 1;
+
+    @property
+    set originalMaxHp(val: number) {
+        this._originalMaxHp = val;
+        this.maxHp = val;
+    }
+
+    get originalMaxHp(): number {
+        return this._originalMaxHp;
+    }
+
+    private addExpToPlayer() {
+        const canvas = this.node.parent;
+        if (!canvas) return;
+
+        for (const child of canvas.children) {
+            const stats = child.getComponent(PlayerStats);
+            if (stats) {
+                stats.addExperience(this.expReward);
+                break;
+            }
+        }
+    }
+
+    /**
      * 碰撞回调 - 当寄居蟹的 Collider 与其他 Collider 碰撞时自动调用
      * 人物碰到寄居蟹就弹出失败界面
      */
     onCollisionEnter(otherCollider: Collider2D, selfCollider: Collider2D, contact: IPhysics2DContact) {
-        // 防止重复触发
-        if (this.isTriggered) return;
+        if (this.isTriggered || this.isDead) return;
         this.isTriggered = true;
 
-        console.log('💥 寄居蟹与玩家发生碰撞！');
+        const otherNode = otherCollider.node;
+        if (otherNode.getComponent('move')) {
+            console.log('💥 玩家碰到寄居蟹！');
+            contact.disabled = true;
 
-        // 禁用物理接触，防止人物被推着走
-        contact.disabled = true;
+            const playerStats = otherNode.getComponent(PlayerStats);
+            if (playerStats) {
+                playerStats.takeDamage(10);
+            }
 
-        // 显示闯关失败界面
-        if (this.gameOverUI) {
-            this.gameOverUI.show();
-        } else {
-            console.error('❌ 未设置 gameOverUI，请在 HermitCrab 属性面板中拖入 GameOverUI 节点');
+            if (this.gameOverUI) {
+                this.gameOverUI.show();
+            }
         }
     }
 }
