@@ -25,51 +25,79 @@ export class GameOverUI extends Component {
 
         const bgTransform = this.node.getComponent(UITransform) || this.node.addComponent(UITransform);
         bgTransform.setContentSize(new Size(1280, 720));
-        bgTransform.setAnchorPoint(0, 0);
         this.node.setPosition(0, 0, 0);
 
         const bgSprite = this.node.getComponent(Sprite) || this.node.addComponent(Sprite);
-        bgSprite.color = new Color(0, 0, 0, 180);
+        bgSprite.color = new Color(0, 0, 0, 200);
         bgSprite.sizeMode = 0;
 
+        const panelNode = new Node('panel');
+        this.node.addChild(panelNode);
+        panelNode.setPosition(850, -120, 0);
+
+        const panelTransform = panelNode.addComponent(UITransform);
+        panelTransform.setContentSize(new Size(600, 400));
+
+        const panelSprite = panelNode.addComponent(Sprite);
+        panelSprite.color = new Color(50, 50, 50, 255);
+        panelSprite.sizeMode = 0;
+
         const failLabelNode = new Node('failLabel');
-        this.node.addChild(failLabelNode);
-        failLabelNode.setPosition(640, 460, 0);
+        panelNode.addChild(failLabelNode);
+        failLabelNode.setPosition(300, 280, 0);
 
         const labelTransform = failLabelNode.addComponent(UITransform);
-        labelTransform.setContentSize(new Size(600, 100));
+        labelTransform.setContentSize(new Size(400, 80));
 
         const label = failLabelNode.addComponent(Label);
-        label.string = '闯关失败';
-        label.fontSize = 72;
+        label.string = '游戏结束';
+        label.fontSize = 56;
         label.lineHeight = 80;
         label.horizontalAlign = Label.HorizontalAlign.CENTER;
-        label.color = new Color(255, 0, 0, 255);
+        label.color = new Color(255, 50, 50, 255);
+
+        const descLabelNode = new Node('descLabel');
+        panelNode.addChild(descLabelNode);
+        descLabelNode.setPosition(300, 220, 0);
+
+        const descTransform = descLabelNode.addComponent(UITransform);
+        descTransform.setContentSize(new Size(400, 40));
+
+        const descLabel = descLabelNode.addComponent(Label);
+        descLabel.string = '你被敌人击败了';
+        descLabel.fontSize = 24;
+        descLabel.horizontalAlign = Label.HorizontalAlign.CENTER;
+        descLabel.color = new Color(200, 200, 200, 255);
 
         const btnNode = new Node('backButton');
-        this.node.addChild(btnNode);
-        btnNode.setPosition(640, 260, 0);
+        panelNode.addChild(btnNode);
+        btnNode.setPosition(300, 100, 0);
 
         const btnTransform = btnNode.addComponent(UITransform);
-        btnTransform.setContentSize(new Size(300, 80));
+        btnTransform.setContentSize(new Size(200, 60));
+
+        const btnSprite = btnNode.addComponent(Sprite);
+        btnSprite.color = new Color(100, 100, 100, 255);
+        btnSprite.sizeMode = 0;
 
         const btn = btnNode.addComponent(Button);
         btn.transition = Button.Transition.COLOR;
-        btn.normalColor = new Color(200, 200, 200, 255);
-        btn.pressedColor = new Color(150, 150, 150, 255);
-        btn.hoverColor = new Color(220, 220, 220, 255);
+        btn.normalColor = new Color(100, 100, 100, 255);
+        btn.pressedColor = new Color(150, 50, 50, 255);
+        btn.hoverColor = new Color(120, 120, 120, 255);
         btn.target = btnNode;
 
         const btnLabelNode = new Node('Label');
         btnNode.addChild(btnLabelNode);
+        btnLabelNode.setPosition(0, 0, 0);
 
         const btnLabelTransform = btnLabelNode.addComponent(UITransform);
-        btnLabelTransform.setContentSize(new Size(300, 80));
+        btnLabelTransform.setContentSize(new Size(200, 60));
 
         const btnLabel = btnLabelNode.addComponent(Label);
-        btnLabel.string = '返回关卡选择';
-        btnLabel.fontSize = 36;
-        btnLabel.lineHeight = 45;
+        btnLabel.string = '返回主菜单';
+        btnLabel.fontSize = 28;
+        btnLabel.lineHeight = 35;
         btnLabel.horizontalAlign = Label.HorizontalAlign.CENTER;
         btnLabel.verticalAlign = Label.VerticalAlign.CENTER;
         btnLabel.color = new Color(255, 255, 255, 255);

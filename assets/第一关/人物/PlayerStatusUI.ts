@@ -40,17 +40,23 @@ export class PlayerStatusUI extends Component {
     }
 
     private bindPlayerStats() {
+        console.log('🔍 bindPlayerStats 开始');
+
         if (!this.playerNode) {
             let root = this.node;
             while (root.parent) {
                 root = root.parent;
             }
+            console.log('🔍 搜索玩家节点，从: ' + root.name);
             this.playerNode = this.searchForPlayer(root);
+            console.log('🔍 搜索结果: ' + (this.playerNode ? this.playerNode.name : 'null'));
         }
 
         if (this.playerNode) {
+            console.log('🔍 找到玩家节点: ' + this.playerNode.name);
             this.playerStats = this.playerNode.getComponent(PlayerStats);
             if (!this.playerStats) {
+                console.log('🔍 添加 PlayerStats 组件');
                 this.playerStats = this.playerNode.addComponent(PlayerStats);
             }
 
@@ -123,9 +129,6 @@ export class PlayerStatusUI extends Component {
     }
 
     private onPlayerDeath() {
-        if (this.playerNode) {
-            this.playerNode.active = false;
-        }
         if (this.gameOverUI) {
             console.log('🎮 尝试显示游戏结束界面');
             const ui = this.gameOverUI.getComponent(GameOverUI);
@@ -138,6 +141,11 @@ export class PlayerStatusUI extends Component {
             }
         } else {
             console.warn('⚠️ GameOverUI 节点未设置');
+        }
+
+        if (this.playerNode) {
+            console.log('💀 隐藏玩家节点');
+            this.playerNode.active = false;
         }
     }
 }

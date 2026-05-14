@@ -1,4 +1,4 @@
-import { _decorator, Component, Sprite, SpriteFrame, Node, Color, UITransform } from 'cc';
+import { _decorator, Component, Sprite, SpriteFrame, Node, Color, UITransform, Label } from 'cc';
 import { GameOverUI } from './GameOverUI';
 import { PlayerStats } from '../人物/PlayerStats';
 import { InkBullet } from './InkBullet';
@@ -9,7 +9,12 @@ export class Octopus extends Component {
     @property(SpriteFrame) octopusSprite: SpriteFrame | null = null;
     @property({ type: GameOverUI }) gameOverUI: GameOverUI | null = null;
     @property expReward: number = 1;
-    @property maxHp: number = 1;
+    @property maxHp: number = 3;
+
+    private currentHp: number = 3;
+    private hpBarBg: Node | null = null;
+    private hpBarFill: Sprite | null = null;
+    private hpLabel: Label | null = null;
 
     // ===== 移动（全部世界坐标） =====
     @property({ tooltip: '移动速度(像素/秒)' }) moveSpeedX: number = 80;
@@ -94,6 +99,9 @@ export class Octopus extends Component {
         if (this.octopusSprite) this.sprite.spriteFrame = this.octopusSprite;
 
         this._origMaxHp = this.maxHp;
+        this.currentHp = this.maxHp;
+
+        this.createHpBar();
 
         // ★ 钳制初始世界位置到安全区
         const wx = this.worldX;
@@ -275,6 +283,65 @@ export class Octopus extends Component {
     private fireInk(dir: number) {
     }
 
+    private createHpBar() {
+        console.log('🔨 开始创建血条');
+        this.hpBarBg = new Node('HpBarBg');
+        this.node.addChild(this.hpBarBg);
+        this.hpBarBg.setPosition(0, 60, 0);
+        console.log('🔨 血条背景节点已创建: ' + this.hpBarBg.name);
+
+        const bgTransform = this.hpBarBg.addComponent(UITransform);
+        bgTransform.setContentSize(80, 10);
+
+        const bgSprite = this.hpBarBg.getComponent(Sprite);
+        if (!bgSprite) {
+            const newBgSprite = this.hpBarBg.addComponent(Sprite);
+            newBgSprite.color = new Color(0, 0, 0, 200);
+            newBgSprite.sizeMode = 0;
+        }
+
+        const hpFillNode = new Node('HpBarFill');
+        this.hpBarBg.addChild(hpFillNode);
+        hpFillNode.setPosition(0, 0, 0);
+
+        const fillTransform = hpFillNode.addComponent(UITransform);
+        fillTransform.setContentSize(80, 10);
+        fillTransform.setAnchorPoint(0, 0.5);
+
+        this.hpBarFill = hpFillNode.addComponent(Sprite);
+        this.hpBarFill.color = new Color(255, 0, 0, 255);
+        this.hpBarFill.sizeMode = 0;
+
+        this.hpLabel = this.hpBarBg.addComponent(Label);
+        this.hpLabel.string = `${this.currentHp}/${this.maxHp}`;
+        this.hpLabel.fontSize = 12;
+        this.hpLabel.horizontalAlign = Label.HorizontalAlign.CENTER;
+        this.hpLabel.color = new Color(255, 255, 255, 255);
+        console.log('✅ 血条创建完成');
+    }
+
+    private updateHpBar() {
+        if (!this.hpBarFill || !this.hpLabel) return;
+        const percent = Math.max(0, this.currentHp / this.maxHp);
+        const newWidth = 80 * percent;
+        const fillTransform = this.hpBarFill.node.getComponent(UITransform);
+        if (fillTransform) {
+            fillTransform.setContentSize(newWidth, 10);
+        }
+        this.hpLabel.string = `${this.currentHp}/${this.maxHp}`;
+    }
+
+    public takeDamage(damage: number) {
+        if (this.isDead) return;
+        this.currentHp -= damage;
+        console.log(`🐙 章鱼受到伤害: ${damage}，剩余血量: ${this.currentHp}`);
+        this.updateHpBar();
+
+        if (this.currentHp <= 0) {
+            this.die();
+        }
+    }
+
     // ==================== 工具 ====================
 
     private findPlayer(): Node | null {
@@ -331,19 +398,7 @@ export class Octopus extends Component {
         for (const ink of this.inkBullets) ink.destroy();
         this.inkBullets = [];
         this.node.active = false;
-        setTimeout(() => {
-            this.isDead = false;
-            this.maxHp = this._origMaxHp;
-            this.node.active = true;
-            const sl = this.leftBound + this.boundaryMargin;
-            const sr = this.rightBound - this.boundaryMargin;
-            const cx = Math.max(sl, Math.min(sr, this.worldX));
-            this.setWorldX(cx);
-            this.roamDir = Math.random() > 0.5 ? 1 : -1;
-            this.faceDir = this.roamDir;
-            this.attackFaceLeft = 0;
-            this.enterIdle();
-        }, 5000);
+        console.log('💀 章鱼已死亡，不再复活');
     }
 
     private addExp() {

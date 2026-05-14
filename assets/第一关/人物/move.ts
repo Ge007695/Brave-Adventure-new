@@ -157,7 +157,12 @@ export class move extends Component {
         if (k === 'k') this.keyK = true;
 
         // ✅ 【修复】静止/移动都能正确判断左右攻击
+        if (k === 'j') {
+            console.log('🔍 检测到 J 键按下');
+            console.log('🔍 isAttacking=' + this.isAttacking + ', attackTimer=' + this.attackTimer.toFixed(2));
+        }
         if (k === 'j' && !this.isAttacking && this.attackTimer <= 0) {
+            console.log('🔍 开始执行攻击');
             this.isAttacking = true;
             this.attackTimer = this.attackCD;
 
@@ -170,11 +175,12 @@ export class move extends Component {
                 // 静止时使用最后朝向
                 attackAnim = this.lastFaceRight ? "rightattack" : "leftattack";
             }
-            
+            console.log('🔍 播放攻击动画: ' + attackAnim);
             this.animation.play(attackAnim);
 
             // ✅ 在动画播放到一半时检测伤害
             this.scheduleOnce(() => {
+                console.log('🔍 0.15秒后，准备检测攻击命中');
                 this.checkAttackHit();
             }, 0.15);
 
@@ -217,35 +223,68 @@ export class move extends Component {
      * ✅ 检测攻击是否命中小怪
      */
     private checkAttackHit() {
+        console.log('🔍 开始检测攻击命中');
         const myPos = this.node.worldPosition;
         const attackDir = this.lastFaceRight ? 1 : -1;
         const attackX = myPos.x + attackDir * 80;
+        console.log('🔍 玩家位置: (' + myPos.x.toFixed(0) + ', ' + myPos.y.toFixed(0) + ')');
+        console.log('🔍 攻击方向: ' + (attackDir > 0 ? '右' : '左'));
 
         const canvas = this.node.parent;
-        if (!canvas) return;
+        if (!canvas) {
+            console.log('❌ 没找到父节点');
+            return;
+        }
+        console.log('🔍 父节点: ' + canvas.name + ', 子节点数量: ' + canvas.children.length);
 
         let hitCount = 0;
         for (const child of canvas.children) {
-            if (child === this.node) continue;
-            if (!child.name.includes('小怪')) continue;
+            console.log('🔍 检查节点: ' + child.name);
+            if (child === this.node) {
+                console.log('  - 跳过玩家节点');
+                continue;
+            }
+            if (!child.name.includes('小怪') && !child.name.includes('章鱼')) {
+                console.log('  - 不是小怪');
+                continue;
+            }
 
             const childPos = child.worldPosition;
-            const dx = Math.abs(childPos.x - attackX);
+            const dx = Math.abs(childPos.x - myPos.x);
             const dy = Math.abs(childPos.y - myPos.y);
+            console.log('  - 小怪位置: (' + childPos.x.toFixed(0) + ', ' + childPos.y.toFixed(0) + ')');
+            console.log('  - 距离: dx=' + dx.toFixed(0) + ', dy=' + dy.toFixed(0));
 
-            if (dx < 80 && dy < 120) {
-                const takeHitFn = (child as any).takeHit;
-                if (typeof takeHitFn === 'function') {
-                    takeHitFn.call(child);
+            if (dx < 2000 && dy < 2000) {
+                let octopus = child.getComponent('Octopus');
+                if (!octopus) {
+                    octopus = this.findOctopusInChildren(child);
+                }
+                if (octopus && typeof (octopus as any).takeDamage === 'function') {
+                    (octopus as any).takeDamage(this.attackDamage);
                     hitCount++;
                     console.log(`⚔️ 攻击命中小怪: ${child.name}！`);
+                } else {
+                    console.log('  - 没找到 Octopus 组件或 takeDamage 方法');
                 }
+            } else {
+                console.log('  - 未命中');
             }
         }
 
         if (hitCount === 0) {
             console.log('⚔️ 攻击未命中');
         }
+    }
+
+    private findOctopusInChildren(node: Node): any {
+        for (const child of node.children) {
+            const octopus = child.getComponent('Octopus');
+            if (octopus) return octopus;
+            const found = this.findOctopusInChildren(child);
+            if (found) return found;
+        }
+        return null;
     }
 
     onCollisionEnter(other: any) {}
