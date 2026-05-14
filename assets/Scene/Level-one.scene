@@ -254,9 +254,14 @@
     "target": {
       "__id__": 6
     },
-    "uiContainer": {
-      "__id__": 14
-    },
+    "uiContainers": [
+      {
+        "__id__": 14
+      },
+      {
+        "__id__": 54
+      }
+    ],
     "smoothSpeed": 0.1,
     "uiOffsetX": -450,
     "uiOffsetY": 220,

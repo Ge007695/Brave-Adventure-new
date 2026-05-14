@@ -6,8 +6,8 @@ export class CameraFollow extends Component {
     @property(Node)
     target: Node | null = null;
 
-    @property(Node)
-    uiContainer: Node | null = null;
+    @property([Node])
+    uiContainers: Node[] = [];
 
     @property
     smoothSpeed: number = 0.1;
@@ -58,8 +58,8 @@ export class CameraFollow extends Component {
         const newX = cameraPos.x + (targetCamX - cameraPos.x) * this.smoothSpeed;
         this.node.setWorldPosition(newX, cameraPos.y, cameraPos.z);
 
-        if (this.uiContainer) {
-            this.uiContainer.setWorldPosition(
+        for (const ui of this.uiContainers) {
+            ui.setWorldPosition(
                 newX + this.uiOffsetX,
                 cameraPos.y + this.uiOffsetY,
                 cameraPos.z

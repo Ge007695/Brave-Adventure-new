@@ -33,7 +33,7 @@ export class GameOverUI extends Component {
 
         const panelNode = new Node('panel');
         this.node.addChild(panelNode);
-        panelNode.setPosition(850, -120, 0);
+        panelNode.setPosition(150, -400, 0);
 
         const panelTransform = panelNode.addComponent(UITransform);
         panelTransform.setContentSize(new Size(600, 400));
