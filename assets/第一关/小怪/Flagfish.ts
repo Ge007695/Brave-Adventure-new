@@ -1,11 +1,11 @@
-import { _decorator, Component, Sprite, SpriteFrame, Collider2D, IPhysics2DContact, director } from 'cc';
-import { GameOverUI } from './GameOverUI';
+import { _decorator, Component, Sprite, SpriteFrame, Collider2D, Node, Color } from 'cc';
+import { PlayerStats } from '../人物/PlayerStats';
 const { ccclass, property } = _decorator;
 
 /**
  * 旗鱼小怪脚本
  * 在指定范围内自动左右移动，通过代码直接切换 SpriteFrame 实现左右方向图片切换
- * 与玩家碰撞时显示闯关失败界面
+ * 与玩家重叠时每次扣25血
  */
 @ccclass('Flagfish')
 export class Flagfish extends Component {
@@ -35,9 +35,13 @@ export class Flagfish extends Component {
     @property(SpriteFrame)
     leftSprite: SpriteFrame | null = null;
 
-    /** 闯关失败界面节点（在场景中拖入） */
-    @property({ type: GameOverUI, tooltip: '拖入场景中的 GameOverUI 节点' })
-    gameOverUI: GameOverUI | null = null;
+    /** 检测重叠的范围（像素） */
+    @property({ tooltip: '检测重叠的范围（像素）' })
+    overlapRange: number = 60;
+
+    /** 扣血冷却时间（秒），防止每帧重复扣血 */
+    @property({ tooltip: '扣血冷却时间（秒）' })
+    damageCooldown: number = 0.5;
 
     // ==================== 内部状态 ====================
 
@@ -47,13 +51,20 @@ export class Flagfish extends Component {
     /** Sprite 组件引用 */
     private sprite: Sprite | null = null;
 
-    /** 是否已经触发碰撞（防止重复触发） */
-    private isTriggered: boolean = false;
-
     /** 是否已停止更新（碰撞后停止移动） */
     private isStopped: boolean = false;
 
+    /** 扣血计时器 */
+    private damageTimer: number = 0;
+
     start() {
+        // ★ 自动移除所有 Collider 组件（防止场景/预制体中残留的碰撞器干扰）
+        const colliders = this.getComponents(Collider2D);
+        for (const c of colliders) {
+            this.node.removeComponent(c);
+            console.log('🧹 旗鱼: 已移除 Collider 组件');
+        }
+
         // 获取 Sprite 组件
         this.sprite = this.getComponent(Sprite);
         if (!this.sprite) {
@@ -76,15 +87,13 @@ export class Flagfish extends Component {
     update(deltaTime: number) {
         if (!this.sprite || this.isStopped) return;
 
-        // 计算移动距离
+        // 移动逻辑
         const direction = this.movingRight ? 1 : -1;
         const moveDistance = direction * this.moveSpeed * deltaTime;
 
-        // 更新位置
         const pos = this.node.position;
         let newX = pos.x + moveDistance;
 
-        // 检查是否到达边界，到达则掉头
         if (newX >= this.rightBound) {
             newX = this.rightBound;
             this.movingRight = false;
@@ -95,32 +104,27 @@ export class Flagfish extends Component {
             this.updateSpriteFrame();
         }
 
-        // 应用新位置
         this.node.setPosition(newX, pos.y, pos.z);
-    }
 
-    /**
-     * 碰撞回调 - 当旗鱼的 Collider 与其他 Collider 碰撞时自动调用
-     * 人物与小怪有重合部分就弹出失败界面
-     */
-    onCollisionEnter(otherCollider: Collider2D, selfCollider: Collider2D, contact: IPhysics2DContact) {
-        // 防止重复触发
-        if (this.isTriggered) return;
-        this.isTriggered = true;
+        // ===== 扣血检测 =====
 
-        console.log('💥 旗鱼与玩家发生碰撞！');
+        // 扣血冷却计时
+        if (this.damageTimer > 0) {
+            this.damageTimer -= deltaTime;
+        }
 
-        // 禁用物理接触，防止人物被推着走
-        contact.disabled = true;
+        // 检测与玩家是否重叠
+        const player = this.findPlayer();
+        if (!player) return;
 
-        // 停止小怪移动
-        this.isStopped = true;
-
-        // 显示闯关失败界面
-        if (this.gameOverUI) {
-            this.gameOverUI.show();
-        } else {
-            console.error('❌ 未设置 gameOverUI，请在 Flagfish 属性面板中拖入 GameOverUI 节点');
+        const dist = this.getDist(player);
+        if (dist < this.overlapRange && this.damageTimer <= 0) {
+            const stats = player.getComponent(PlayerStats);
+            if (stats) {
+                stats.takeDamage(25);
+                console.log('💥 旗鱼与玩家重叠，扣血25！');
+                this.damageTimer = this.damageCooldown;
+            }
         }
     }
 
@@ -153,5 +157,32 @@ export class Flagfish extends Component {
      */
     setSpeed(speed: number) {
         this.moveSpeed = speed;
+    }
+
+    // ==================== 玩家检测 ====================
+
+    private findPlayer(): Node | null {
+        let root = this.node;
+        while (root.parent) {
+            root = root.parent;
+        }
+        return this.searchForPlayer(root);
+    }
+
+    private searchForPlayer(node: Node): Node | null {
+        if (node.getComponent('move')) {
+            return node;
+        }
+        for (const child of node.children) {
+            const found = this.searchForPlayer(child);
+            if (found) return found;
+        }
+        return null;
+    }
+
+    private getDist(p: Node): number {
+        const a = this.node.worldPosition;
+        const b = p.worldPosition;
+        return Math.sqrt((b.x - a.x) ** 2 + (b.y - a.y) ** 2);
     }
 }

@@ -1,5 +1,4 @@
-import { _decorator, Component, Sprite, SpriteFrame, Collider2D, IPhysics2DContact, Color } from 'cc';
-import { GameOverUI } from './GameOverUI';
+import { _decorator, Component, Sprite, SpriteFrame, Color, Node, Collider2D } from 'cc';
 import { PlayerStats } from '../人物/PlayerStats';
 const { ccclass, property } = _decorator;
 
@@ -7,7 +6,7 @@ const { ccclass, property } = _decorator;
  * 寄居蟹小怪脚本
  * 继承自旗鱼思路，但寄居蟹不会移动（静止不动），只有一张图片
  * 可以自由调整位置，支持放置多只
- * 与玩家碰撞时显示闯关失败界面
+ * 与玩家重叠时每次扣25血
  */
 @ccclass('HermitCrab')
 export class HermitCrab extends Component {
@@ -17,10 +16,6 @@ export class HermitCrab extends Component {
     @property(SpriteFrame)
     crabSprite: SpriteFrame | null = null;
 
-    /** 闯关失败界面节点（在场景中拖入 GameOverUI 节点） */
-    @property({ type: GameOverUI, tooltip: '拖入场景中的 GameOverUI 节点' })
-    gameOverUI: GameOverUI | null = null;
-
     /** 击败后获得的经验值 */
     @property
     expReward: number = 1;
@@ -28,6 +23,14 @@ export class HermitCrab extends Component {
     /** 小怪血量（被攻击多少次死亡） */
     @property
     maxHp: number = 1;
+
+    /** 检测重叠的范围（像素） */
+    @property({ tooltip: '检测重叠的范围（像素）' })
+    overlapRange: number = 60;
+
+    /** 扣血冷却时间（秒），防止每帧重复扣血 */
+    @property({ tooltip: '扣血冷却时间（秒）' })
+    damageCooldown: number = 0.5;
 
     /** 小怪是否死亡 */
     private isDead: boolean = false;
@@ -37,10 +40,17 @@ export class HermitCrab extends Component {
     /** Sprite 组件引用 */
     private sprite: Sprite | null = null;
 
-    /** 是否已经触发碰撞（防止重复触发） */
-    private isTriggered: boolean = false;
+    /** 扣血计时器 */
+    private damageTimer: number = 0;
 
     start() {
+        // ★ 自动移除所有 Collider 组件（防止场景/预制体中残留的碰撞器干扰）
+        const colliders = this.getComponents(Collider2D);
+        for (const c of colliders) {
+            this.node.removeComponent(c);
+            console.log('🧹 已移除 Collider 组件');
+        }
+
         // 获取 Sprite 组件
         this.sprite = this.getComponent(Sprite);
         if (!this.sprite) {
@@ -53,6 +63,30 @@ export class HermitCrab extends Component {
             this.sprite.spriteFrame = this.crabSprite;
         } else {
             console.error('❌ 寄居蟹未设置 crabSprite！请在属性面板中拖入寄居蟹.png 的 SpriteFrame');
+        }
+    }
+
+    update(dt: number) {
+        if (this.isDead) return;
+
+        // 扣血冷却计时
+        if (this.damageTimer > 0) {
+            this.damageTimer -= dt;
+        }
+
+        // 检测与玩家是否重叠
+        const player = this.findPlayer();
+        if (!player) return;
+
+        const dist = this.getDist(player);
+        if (dist < this.overlapRange && this.damageTimer <= 0) {
+            // 重叠且冷却结束 → 扣血
+            const stats = player.getComponent(PlayerStats);
+            if (stats) {
+                stats.takeDamage(25);
+                console.log('💥 寄居蟹与玩家重叠，扣血25！');
+                this.damageTimer = this.damageCooldown;
+            }
         }
     }
 
@@ -126,27 +160,30 @@ export class HermitCrab extends Component {
         }
     }
 
-    /**
-     * 碰撞回调 - 当寄居蟹的 Collider 与其他 Collider 碰撞时自动调用
-     * 人物碰到寄居蟹就弹出失败界面
-     */
-    onCollisionEnter(otherCollider: Collider2D, selfCollider: Collider2D, contact: IPhysics2DContact) {
-        if (this.isTriggered || this.isDead) return;
-        this.isTriggered = true;
+    // ==================== 玩家检测 ====================
 
-        const otherNode = otherCollider.node;
-        if (otherNode.getComponent('move')) {
-            console.log('💥 玩家碰到寄居蟹！');
-            contact.disabled = true;
-
-            const playerStats = otherNode.getComponent(PlayerStats);
-            if (playerStats) {
-                playerStats.takeDamage(10);
-            }
-
-            if (this.gameOverUI) {
-                this.gameOverUI.show();
-            }
+    private findPlayer(): Node | null {
+        let root = this.node;
+        while (root.parent) {
+            root = root.parent;
         }
+        return this.searchForPlayer(root);
+    }
+
+    private searchForPlayer(node: Node): Node | null {
+        if (node.getComponent('move')) {
+            return node;
+        }
+        for (const child of node.children) {
+            const found = this.searchForPlayer(child);
+            if (found) return found;
+        }
+        return null;
+    }
+
+    private getDist(p: Node): number {
+        const a = this.node.worldPosition;
+        const b = p.worldPosition;
+        return Math.sqrt((b.x - a.x) ** 2 + (b.y - a.y) ** 2);
     }
 }
