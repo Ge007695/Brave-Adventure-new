@@ -52,7 +52,7 @@
     },
     "autoReleaseAssets": false,
     "_globals": {
-      "__id__": 135
+      "__id__": 134
     },
     "_id": "0c7c8aed-fcb1-4f1b-b336-9cc5dfefc5c5"
   },
@@ -108,13 +108,13 @@
     "_active": true,
     "_components": [
       {
+        "__id__": 131
+      },
+      {
         "__id__": 132
       },
       {
         "__id__": 133
-      },
-      {
-        "__id__": 134
       }
     ],
     "_prefab": null,
@@ -8655,7 +8655,7 @@
     "_active": true,
     "_components": [
       {
-        "__id__": 131
+        "__id__": 130
       }
     ],
     "_prefab": null,
@@ -8707,9 +8707,6 @@
       },
       {
         "__id__": 129
-      },
-      {
-        "__id__": 130
       }
     ],
     "_prefab": null,
@@ -8817,34 +8814,24 @@
     "gameOverUI": null,
     "expReward": 1,
     "maxHp": 3,
-    "moveSpeedX": 80,
-    "leftBound": 100,
-    "rightBound": 2000,
+    "moveSpeedX": 160,
+    "leftBound": 800,
+    "rightBound": 1600,
     "boundaryMargin": 60,
     "minMoveTime": 1.5,
     "maxMoveTime": 4,
     "minIdleTime": 0.3,
     "maxIdleTime": 1,
+    "minRoamDistance": 120,
+    "arriveDistance": 4,
     "jumpForce": 400,
     "gravity": 800,
     "groundY": 300,
     "minJumpInterval": 2,
     "maxJumpInterval": 5,
-    "attackRange": 300,
+    "attackRange": 150,
     "attackCooldown": 1.5,
     "_id": "cdbKVxOthDZoh5EMksnAH6"
-  },
-  {
-    "__type__": "b3711Y6QCVFp4bVnoDeD0NP",
-    "_name": "",
-    "_objFlags": 0,
-    "__editorExtras__": {},
-    "node": {
-      "__id__": 126
-    },
-    "_enabled": true,
-    "__prefab": null,
-    "_id": "b6S1zgugVAqJBVqdOLq+Fj"
   },
   {
     "__type__": "cc.UITransform",
@@ -8939,28 +8926,28 @@
   {
     "__type__": "cc.SceneGlobals",
     "ambient": {
-      "__id__": 136
+      "__id__": 135
     },
     "shadows": {
-      "__id__": 137
+      "__id__": 136
     },
     "_skybox": {
-      "__id__": 138
+      "__id__": 137
     },
     "fog": {
-      "__id__": 139
+      "__id__": 138
     },
     "octree": {
-      "__id__": 140
+      "__id__": 139
     },
     "skin": {
-      "__id__": 141
+      "__id__": 140
     },
     "lightProbeInfo": {
-      "__id__": 142
+      "__id__": 141
     },
     "postSettings": {
-      "__id__": 143
+      "__id__": 142
     },
     "bakedWithStationaryMainLight": false,
     "bakedWithHighpLightmap": false
