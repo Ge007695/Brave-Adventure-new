@@ -1,31 +1,54 @@
-import { _decorator, Component, Node, Sprite, Color, UITransform } from 'cc';
+import { _decorator, Component, Node, Sprite, SpriteFrame, UITransform } from 'cc';
 import { PlayerStats } from '../人物/PlayerStats';
 const { ccclass, property } = _decorator;
 
 @ccclass('InkBullet')
 export class InkBullet extends Component {
     private direction: number = 1;
-    private speed: number = 200;
+    private speed: number = 320;
     private owner: any = null;
-    private damageRange: number = 60;
-    private leftBound: number = 0;
-    private rightBound: number = 500;
+    private damage: number = 10;
+    private damageRange: number = 45;
+    private lifeTimer: number = 0;
+    private maxLifeTime: number = 4;
+    private effectSprite: SpriteFrame | null = null;
+    private effectDuration: number = 0.8;
+    private effectScale: number = 0.9;
+    private initialized: boolean = false;
 
-    init(direction: number, owner: any, leftBound: number, rightBound: number) {
+    init(
+        direction: number,
+        owner: any,
+        damage: number,
+        speed: number,
+        effectSprite: SpriteFrame | null,
+        effectDuration: number,
+        damageRange: number,
+        effectScale: number
+    ) {
         this.direction = direction;
         this.owner = owner;
-        this.leftBound = leftBound;
-        this.rightBound = rightBound;
+        this.damage = damage;
+        this.speed = speed;
+        this.effectSprite = effectSprite;
+        this.effectDuration = effectDuration;
+        this.damageRange = damageRange;
+        this.effectScale = effectScale;
+        this.initialized = true;
     }
 
     update(deltaTime: number) {
-        const pos = this.node.position;
+        if (!this.initialized) return;
+
+        this.lifeTimer += deltaTime;
+
+        const pos = this.node.worldPosition;
         const newX = pos.x + this.direction * this.speed * deltaTime;
-        this.node.setPosition(newX, pos.y, pos.z);
+        this.node.setWorldPosition(newX, pos.y, pos.z);
 
         this.checkCollision();
 
-        if (newX > this.rightBound + 100 || newX < this.leftBound - 100) {
+        if (this.lifeTimer >= this.maxLifeTime) {
             this.owner?.removeInkBullet(this.node);
         }
     }
@@ -44,21 +67,59 @@ export class InkBullet extends Component {
         if (dist < this.damageRange) {
             const stats = player.getComponent(PlayerStats);
             if (stats) {
-                stats.takeDamage(10);
+                stats.takeDamage(this.damage);
             }
+            this.showInkEffect(player);
             this.owner?.removeInkBullet(this.node);
         }
     }
 
     private findPlayer(): Node | null {
-        const canvas = this.node.parent;
-        if (!canvas) return null;
-
-        for (const child of canvas.children) {
-            if (child.getComponent('move')) {
-                return child;
-            }
+        let root = this.node;
+        while (root.parent) {
+            root = root.parent;
         }
+
+        return this.searchForPlayer(root);
+    }
+
+    private searchForPlayer(node: Node): Node | null {
+        if (node.getComponent('move')) {
+            return node;
+        }
+
+        for (const child of node.children) {
+            const found = this.searchForPlayer(child);
+            if (found) return found;
+        }
+
         return null;
+    }
+
+    private showInkEffect(player: Node) {
+        if (!this.effectSprite) return;
+
+        const oldEffect = player.getChildByName('InkHitEffect');
+        if (oldEffect && oldEffect.isValid) {
+            oldEffect.destroy();
+        }
+
+        const effectNode = new Node('InkHitEffect');
+        player.addChild(effectNode);
+        effectNode.setPosition(0, 20, 0);
+        effectNode.setScale(this.effectScale, this.effectScale, 1);
+
+        const transform = effectNode.addComponent(UITransform);
+        transform.setContentSize(78, 100);
+
+        const sprite = effectNode.addComponent(Sprite);
+        sprite.spriteFrame = this.effectSprite;
+        sprite.sizeMode = Sprite.SizeMode.CUSTOM;
+
+        setTimeout(() => {
+            if (effectNode && effectNode.isValid) {
+                effectNode.destroy();
+            }
+        }, this.effectDuration * 1000);
     }
 }

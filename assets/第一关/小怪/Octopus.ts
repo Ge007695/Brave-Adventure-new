@@ -1,12 +1,16 @@
-import { _decorator, Component, Sprite, SpriteFrame, Node, Color, UITransform, Label } from 'cc';
+﻿import { _decorator, Component, Sprite, SpriteFrame, Node, Color, UITransform, Label } from 'cc';
 import { GameOverUI } from './GameOverUI';
 import { PlayerStats } from '../人物/PlayerStats';
+import { InkBullet } from './InkBullet';
 
 const { ccclass, property } = _decorator;
 
 @ccclass('Octopus')
 export class Octopus extends Component {
     @property(SpriteFrame) octopusSprite: SpriteFrame | null = null;
+    @property(SpriteFrame) hitSprite: SpriteFrame | null = null;
+    @property(SpriteFrame) inkSprite: SpriteFrame | null = null;
+    @property({ tooltip: '受击状态显示时间(秒)' }) hitDuration: number = 0.2;
     @property({ type: GameOverUI }) gameOverUI: GameOverUI | null = null;
 
     @property expReward: number = 1;
@@ -31,6 +35,17 @@ export class Octopus extends Component {
 
     @property({ tooltip: '世界坐标攻击范围' }) attackRange: number = 300;
     @property({ tooltip: '攻击冷却(秒)' }) attackCooldown: number = 1.5;
+    @property({ tooltip: '墨球命中伤害' }) attackDamage: number = 10;
+    @property({ tooltip: '每次喷吐墨球数量' }) inkBulletCount: number = 3;
+    @property({ tooltip: '墨球速度(像素/秒)' }) inkBulletSpeed: number = 320;
+    @property({ tooltip: '三颗墨球之间的Y轴间距' }) inkBulletSpreadY: number = 28;
+    @property({ tooltip: '墨球出生点X偏移' }) inkSpawnOffsetX: number = 70;
+    @property({ tooltip: '墨球出生点Y偏移' }) inkSpawnOffsetY: number = 10;
+    @property({ tooltip: '墨球显示缩放' }) inkBulletScale: number = 0.55;
+    @property({ tooltip: '墨球命中半径' }) inkHitRange: number = 45;
+    @property({ tooltip: '玩家身上墨迹持续时间(秒)' }) inkEffectDuration: number = 0.8;
+    @property({ tooltip: '玩家身上墨迹缩放' }) inkEffectScale: number = 0.9;
+    @property({ tooltip: '场上最多保留墨球数量' }) maxInkBullets: number = 12;
 
     private currentHp: number = 3;
     private hpBarBg: Node | null = null;
@@ -38,6 +53,8 @@ export class Octopus extends Component {
     private hpLabel: Label | null = null;
 
     private sprite: Sprite | null = null;
+    private normalSpriteFrame: SpriteFrame | null = null;
+    private hitTimer: number = 0;
     private playerNode: Node | null = null;
 
     private isDead: boolean = false;
@@ -76,6 +93,7 @@ export class Octopus extends Component {
         if (this.octopusSprite) {
             this.sprite.spriteFrame = this.octopusSprite;
         }
+        this.normalSpriteFrame = this.sprite.spriteFrame;
 
         this.currentHp = this.maxHp;
         this.createHpBar();
@@ -96,6 +114,7 @@ export class Octopus extends Component {
 
         this.attackTimer += dt;
         this.jumpTimer += dt;
+        this.updateHitSprite(dt);
 
         if (this.attackFaceLeft > 0) {
             this.attackFaceLeft -= dt;
@@ -236,6 +255,22 @@ export class Octopus extends Component {
         }
     }
 
+    private updateHitSprite(dt: number) {
+        if (!this.sprite || this.hitTimer <= 0) return;
+
+        this.hitTimer -= dt;
+        if (this.hitTimer <= 0 && this.normalSpriteFrame) {
+            this.sprite.spriteFrame = this.normalSpriteFrame;
+        }
+    }
+
+    private showHitSprite() {
+        if (!this.sprite || !this.hitSprite) return;
+
+        this.sprite.spriteFrame = this.hitSprite;
+        this.hitTimer = this.hitDuration;
+    }
+
     private doAttack(player: Node) {
         this.attackTimer = 0;
 
@@ -243,10 +278,66 @@ export class Octopus extends Component {
         this.faceDir = dir;
         this.attackFaceLeft = 0.4;
 
-        const stats = player.getComponent(PlayerStats);
-        if (stats) {
-            stats.takeDamage(25);
+        this.fireInkBurst(dir);
+    }
+
+    private fireInkBurst(dir: number) {
+        if (!this.inkSprite) {
+            console.warn('Octopus 缺少 inkSprite，无法生成墨球');
+            return;
         }
+
+        const parent = this.getBulletParent();
+        const count = Math.max(1, Math.floor(this.inkBulletCount));
+        const totalSpreadY = (count - 1) * this.inkBulletSpreadY;
+
+        for (let i = 0; i < count; i++) {
+            if (this.inkBullets.length >= this.maxInkBullets) {
+                const oldInk = this.inkBullets.shift();
+                if (oldInk && oldInk.isValid) {
+                    oldInk.destroy();
+                }
+            }
+
+            const offsetY = i * this.inkBulletSpreadY - totalSpreadY * 0.5;
+            const ink = new Node('InkBullet');
+            parent.addChild(ink);
+            ink.setWorldPosition(
+                this.worldX + dir * this.inkSpawnOffsetX,
+                this.worldY + this.inkSpawnOffsetY + offsetY,
+                this.node.worldPosition.z
+            );
+            ink.setScale(this.inkBulletScale, this.inkBulletScale, 1);
+
+            const transform = ink.addComponent(UITransform);
+            transform.setContentSize(78, 100);
+
+            const sprite = ink.addComponent(Sprite);
+            sprite.spriteFrame = this.inkSprite;
+            sprite.sizeMode = Sprite.SizeMode.CUSTOM;
+
+            const bullet = ink.addComponent(InkBullet);
+            bullet.init(
+                dir,
+                this,
+                this.attackDamage,
+                this.inkBulletSpeed,
+                this.inkSprite,
+                this.inkEffectDuration,
+                this.inkHitRange,
+                this.inkEffectScale
+            );
+
+            this.inkBullets.push(ink);
+        }
+    }
+
+    private getBulletParent(): Node {
+        let parent = this.node;
+        while (parent.parent && parent.parent.parent) {
+            parent = parent.parent;
+        }
+        return parent;
     }
 
     private createHpBar() {
@@ -298,6 +389,10 @@ export class Octopus extends Component {
 
         this.currentHp -= damage;
         this.updateHpBar();
+
+        if (this.currentHp > 0) {
+            this.showHitSprite();
+        }
 
         if (this.currentHp <= 0) {
             this.die();

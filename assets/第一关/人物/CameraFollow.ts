@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, view } from 'cc';
+﻿import { _decorator, Component, Node, view } from 'cc';
 const { ccclass, property } = _decorator;
 
 @ccclass('CameraFollow')
@@ -12,10 +12,10 @@ export class CameraFollow extends Component {
     @property
     smoothSpeed: number = 0.1;
 
-    @property
+    @property({ tooltip: '人物属性UI相对相机的X偏移：数值越小越靠左，越大越靠右' })
     uiOffsetX: number = -450;
 
-    @property
+    @property({ tooltip: '人物属性UI相对相机的Y偏移：数值越大越靠上，越小越靠下' })
     uiOffsetY: number = 220;
 
     @property
