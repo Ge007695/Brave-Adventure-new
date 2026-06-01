@@ -63,6 +63,7 @@ export class move extends Component {
                 case 'd': this.keyD = true; break;
                 case 'k': this.keyK = true; break;
                 case 'j': this.tryAttack(); break;
+                case 'e': this.tryInteract(); break;
             }
         };
         this._onKeyUpDom = (e: KeyboardEvent) => {
@@ -94,7 +95,7 @@ export class move extends Component {
         } else {
             console.error("❌ 找不到RigidBody2D组件！");
         }
-        
+
         this.animation = this.getComponent(Animation);
         if (this.animation) {
             this.animation.stop();
@@ -138,7 +139,7 @@ export class move extends Component {
         const posDelta = Math.abs(currentPosY - this.lastPosY);
         const isNearZero = Math.abs(vel.y) < 50;
         const isPosStable = posDelta < 0.5;
-        
+
         if (!this.canJump && isNearZero && isPosStable) {
             this.stableFrames++;
             if (this.stableFrames >= 1.5) {
@@ -149,7 +150,7 @@ export class move extends Component {
         } else {
             this.stableFrames = 0;
         }
-        
+
         this.lastPosY = currentPosY;
 
         if (this.keyK && !this.lastKeyK && this.canJump && this.jumpCount < this.maxJump) {
@@ -160,7 +161,10 @@ export class move extends Component {
                 this.stableFrames = 0;
             }
         }
-        
+
+        this.lastKeyK = this.keyK;
+
+        this.lastPosY = currentPosY;
         this.lastKeyK = this.keyK;
         this.updateAnimation();
     }
@@ -206,12 +210,45 @@ export class move extends Component {
         }, 350);
     }
 
+    /** 交互逻辑：寻找最近的宝箱并尝试打开 */
+    private tryInteract() {
+        const chests = this.findNearbyChests();
+        for (const chest of chests) {
+            if (chest.tryOpen()) {
+                console.log('🎁 打开宝箱成功');
+                break; // 一次只开一个宝箱
+            }
+        }
+    }
+
+    /** 在场景中查找所有宝箱组件 */
+    private findNearbyChests(): any[] {
+        const result: any[] = [];
+        let root = this.node;
+        while (root.parent) {
+            root = root.parent;
+        }
+        this.searchForChest(root, result);
+        return result;
+    }
+
+    private searchForChest(node: Node, result: any[]) {
+        const chest = node.getComponent('TreasureChest');
+        if (chest) {
+            result.push(chest);
+        }
+        for (const child of node.children) {
+            this.searchForChest(child, result);
+        }
+    }
+
     private onKeyDown(event: EventKeyboard) {
         switch (event.keyCode) {
             case KeyCode.KEY_A: this.keyA = true; break;
             case KeyCode.KEY_D: this.keyD = true; break;
             case KeyCode.KEY_K: this.keyK = true; break;
             case KeyCode.KEY_J: this.tryAttack(); break;
+            case KeyCode.KEY_E: this.tryInteract(); break;
         }
     }
 
@@ -293,9 +330,6 @@ export class move extends Component {
             this.findAllOctopusInChildren(child, result);
         }
     }
-
-    onCollisionEnter(other: any) {}
-    onCollisionExit(other: any) {}
 
     onDestroy() {
         input.off(Input.EventType.KEY_DOWN, this.onKeyDown, this);

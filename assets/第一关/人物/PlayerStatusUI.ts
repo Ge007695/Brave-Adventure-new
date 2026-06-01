@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, Label, Sprite } from 'cc';
+import { _decorator, Component, Node, Label, Sprite, director } from 'cc';
 import { PlayerStats } from '../人物/PlayerStats';
 import { GameOverUI } from '../小怪/GameOverUI';
 const { ccclass, property } = _decorator;
@@ -129,6 +129,17 @@ export class PlayerStatusUI extends Component {
     }
 
     private onPlayerDeath() {
+        // 兜底：如果引用丢失，自动在场景中查找 GameOverUI 组件
+        if (!this.gameOverUI) {
+            const scene = director.getScene();
+            if (scene) {
+                const canvas = scene.getChildByName('Canvas');
+                if (canvas) {
+                    this.gameOverUI = canvas;
+                }
+            }
+        }
+
         if (this.gameOverUI) {
             console.log('🎮 尝试显示游戏结束界面');
             const ui = this.gameOverUI.getComponent(GameOverUI);
@@ -136,16 +147,34 @@ export class PlayerStatusUI extends Component {
                 ui.show();
                 console.log('✅ GameOverUI.show() 已调用');
             } else {
-                this.gameOverUI.active = true;
-                console.log('✅ 直接激活 GameOverUI 节点');
+                // 兜底：如果节点上没找到组件，全局搜索
+                const scene = director.getScene();
+                if (scene) {
+                    const found = this.findGameOverUI(scene);
+                    if (found) {
+                        found.show();
+                        console.log('✅ 通过搜索找到 GameOverUI 并调用 show()');
+                    }
+                }
             }
         } else {
-            console.warn('⚠️ GameOverUI 节点未设置');
+            console.warn('⚠️ GameOverUI 节点未设置且无法自动找到');
         }
 
         if (this.playerNode) {
             console.log('💀 隐藏玩家节点');
             this.playerNode.active = false;
         }
+    }
+
+    /** 递归搜索场景中的 GameOverUI 组件 */
+    private findGameOverUI(node: Node): GameOverUI | null {
+        const comp = node.getComponent(GameOverUI);
+        if (comp) return comp;
+        for (const child of node.children) {
+            const found = this.findGameOverUI(child);
+            if (found) return found;
+        }
+        return null;
     }
 }
