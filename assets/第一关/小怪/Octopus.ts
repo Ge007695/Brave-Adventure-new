@@ -1,4 +1,4 @@
-﻿import { _decorator, Component, Sprite, SpriteFrame, Node, Color, UITransform, Label } from 'cc';
+﻿import { _decorator, Component, Sprite, SpriteFrame, Node, Color, UITransform, Label, Graphics } from 'cc';
 import { GameOverUI } from './GameOverUI';
 import { PlayerStats } from '../人物/PlayerStats';
 import { InkBullet } from './InkBullet';
@@ -49,7 +49,7 @@ export class Octopus extends Component {
 
     private currentHp: number = 3;
     private hpBarBg: Node | null = null;
-    private hpBarFill: Sprite | null = null;
+    private hpBarFill: Graphics | null = null;
     private hpLabel: Label | null = null;
 
     private sprite: Sprite | null = null;
@@ -341,46 +341,85 @@ export class Octopus extends Component {
     }
 
     private createHpBar() {
+        const barWidth = 80;
+        const barHeight = 10;
+
+        // ── 血条容器（背景）── 放在章鱼头顶上方
         this.hpBarBg = new Node('HpBarBg');
         this.node.addChild(this.hpBarBg);
-        this.hpBarBg.setPosition(0, 60, 0);
+        this.hpBarBg.setPosition(0, 95, 0);
 
         const bgTransform = this.hpBarBg.addComponent(UITransform);
-        bgTransform.setContentSize(80, 10);
+        bgTransform.setContentSize(barWidth, barHeight);
 
-        const bgSprite = this.hpBarBg.addComponent(Sprite);
-        bgSprite.color = new Color(0, 0, 0, 200);
-        bgSprite.sizeMode = Sprite.SizeMode.CUSTOM;
+        // 黑色半透明背景
+        const bgGfx = this.hpBarBg.addComponent(Graphics);
+        bgGfx.fillColor = new Color(0, 0, 0, 200);
+        bgGfx.rect(-barWidth / 2, -barHeight / 2, barWidth, barHeight);
+        bgGfx.fill();
 
+        // 灰色边框
+        bgGfx.strokeColor = new Color(100, 100, 100, 255);
+        bgGfx.lineWidth = 1;
+        bgGfx.rect(-barWidth / 2, -barHeight / 2, barWidth, barHeight);
+        bgGfx.stroke();
+
+        // ── 红色血量填充条（锚点左对齐，受伤时从右侧缩短）──
         const hpFillNode = new Node('HpBarFill');
         this.hpBarBg.addChild(hpFillNode);
-        hpFillNode.setPosition(-40, 0, 0);
+        hpFillNode.setPosition(-barWidth / 2, 0, 0);
 
         const fillTransform = hpFillNode.addComponent(UITransform);
-        fillTransform.setContentSize(80, 10);
+        fillTransform.setContentSize(barWidth, barHeight);
         fillTransform.setAnchorPoint(0, 0.5);
 
-        this.hpBarFill = hpFillNode.addComponent(Sprite);
-        this.hpBarFill.color = new Color(255, 0, 0, 255);
-        this.hpBarFill.sizeMode = Sprite.SizeMode.CUSTOM;
+        this.hpBarFill = hpFillNode.addComponent(Graphics);
+        this.drawFillRect(barWidth, barHeight, new Color(80, 200, 60, 255));
 
-        this.hpLabel = this.hpBarBg.addComponent(Label);
+        // ── 血量数字标签（显示在血条上方）──
+        const labelNode = new Node('HpLabel');
+        this.hpBarBg.addChild(labelNode);
+        labelNode.setPosition(0, barHeight / 2 + 6, 0);
+
+        const labelTransform = labelNode.addComponent(UITransform);
+        labelTransform.setContentSize(barWidth, 16);
+
+        this.hpLabel = labelNode.addComponent(Label);
         this.hpLabel.string = `${this.currentHp}/${this.maxHp}`;
         this.hpLabel.fontSize = 12;
         this.hpLabel.horizontalAlign = Label.HorizontalAlign.CENTER;
+        this.hpLabel.verticalAlign = Label.VerticalAlign.CENTER;
         this.hpLabel.color = new Color(255, 255, 255, 255);
+    }
+
+    /** 在 hpBarFill 中绘制指定宽度的实心矩形 */
+    private drawFillRect(width: number, height: number, color: Color) {
+        if (!this.hpBarFill) return;
+        this.hpBarFill.clear();
+        this.hpBarFill.fillColor = color;
+        // 锚点 (0, 0.5)，原点在左中，从 (0, -h/2) 向右画
+        this.hpBarFill.rect(0, -height / 2, width, height);
+        this.hpBarFill.fill();
     }
 
     private updateHpBar() {
         if (!this.hpBarFill || !this.hpLabel) return;
 
+        const barWidth = 80;
+        const barHeight = 10;
         const percent = Math.max(0, this.currentHp / this.maxHp);
-        const fillTransform = this.hpBarFill.node.getComponent(UITransform);
 
-        if (fillTransform) {
-            fillTransform.setContentSize(80 * percent, 10);
+        // 血量颜色渐变：绿(健康) → 橙(中等) → 红(危险)
+        let fillColor: Color;
+        if (percent > 0.6) {
+            fillColor = new Color(80, 200, 60, 255);
+        } else if (percent > 0.3) {
+            fillColor = new Color(255, 180, 40, 255);
+        } else {
+            fillColor = new Color(255, 60, 40, 255);
         }
 
+        this.drawFillRect(barWidth * percent, barHeight, fillColor);
         this.hpLabel.string = `${Math.max(0, this.currentHp)}/${this.maxHp}`;
     }
 

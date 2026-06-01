@@ -1,4 +1,4 @@
-﻿import { _decorator, Component, RigidBody2D, Vec2, PhysicsSystem2D, Animation, Node } from 'cc';
+﻿import { _decorator, Component, RigidBody2D, Vec2, PhysicsSystem2D, Animation, Node, input, Input, EventKeyboard, KeyCode } from 'cc';
 const { ccclass, property } = _decorator;
 
 @ccclass('move')
@@ -20,6 +20,17 @@ export class move extends Component {
     private keyD: boolean = false;
     private keyK: boolean = false;
     private lastKeyK: boolean = false;
+    private lastKeyJ: boolean = false;
+
+    /** 公开方法：外部（面板关闭时）可调用来强制重置所有输入状态 */
+    public resetInputState(): void {
+        this.keyA = false;
+        this.keyD = false;
+        this.keyK = false;
+        this.lastKeyK = false;
+        this.lastKeyJ = false;
+        console.log('🔄 输入状态已重置');
+    }
 
     // ✅ 【新增】记录最后朝向（静止时也能正确攻击）
     private lastFaceRight: boolean = true; 
@@ -36,21 +47,40 @@ export class move extends Component {
     @property
     attackDamage: number = 1;
 
-    private onKeyDownHandler!: (e: KeyboardEvent) => void;
-    private onKeyUpHandler!: (e: KeyboardEvent) => void;
+    // DOM 事件兜底：画布失焦时仍能接收键盘输入
+    private _onKeyDownDom: ((e: KeyboardEvent) => void) | null = null;
+    private _onKeyUpDom: ((e: KeyboardEvent) => void) | null = null;
 
     onLoad() {
-        this.onKeyDownHandler = this.onKeyDown.bind(this);
-        this.onKeyUpHandler = this.onKeyUp.bind(this);
-        document.addEventListener('keydown', this.onKeyDownHandler);
-        document.addEventListener('keyup', this.onKeyUpHandler);
+        // 1. Cocos 原生输入系统
+        input.on(Input.EventType.KEY_DOWN, this.onKeyDown, this);
+        input.on(Input.EventType.KEY_UP, this.onKeyUp, this);
+
+        // 2. DOM 事件兜底（画布失焦时 document 仍能收到按键）
+        this._onKeyDownDom = (e: KeyboardEvent) => {
+            switch (e.key.toLowerCase()) {
+                case 'a': this.keyA = true; break;
+                case 'd': this.keyD = true; break;
+                case 'k': this.keyK = true; break;
+                case 'j': this.tryAttack(); break;
+            }
+        };
+        this._onKeyUpDom = (e: KeyboardEvent) => {
+            switch (e.key.toLowerCase()) {
+                case 'a': this.keyA = false; break;
+                case 'd': this.keyD = false; break;
+                case 'k': this.keyK = false; break;
+            }
+        };
+        document.addEventListener('keydown', this._onKeyDownDom);
+        document.addEventListener('keyup', this._onKeyUpDom);
     }
 
     start() {
         if (!PhysicsSystem2D.instance.enable) {
             PhysicsSystem2D.instance.enable = true;
         }
-        
+
         this.scheduleOnce(() => {
             this.initRigidBody();
         }, 0.05);
@@ -150,51 +180,47 @@ export class move extends Component {
         }
     }
 
-    private onKeyDown(e: KeyboardEvent) {
-        const k = e.key.toLowerCase();
-        if (k === 'a') this.keyA = true;
-        if (k === 'd') this.keyD = true;
-        if (k === 'k') this.keyK = true;
+    /** 攻击逻辑（供 Cocos input 和 DOM 事件共用） */
+    private tryAttack() {
+        if (this.isAttacking || this.attackTimer > 0) return;
 
-        // ✅ 【修复】静止/移动都能正确判断左右攻击
-        if (k === 'j') {
-            console.log('🔍 检测到 J 键按下');
-            console.log('🔍 isAttacking=' + this.isAttacking + ', attackTimer=' + this.attackTimer.toFixed(2));
+        this.isAttacking = true;
+        this.attackTimer = this.attackCD;
+
+        let attackAnim = "";
+        if (this.keyA) {
+            attackAnim = "leftattack";
+        } else if (this.keyD) {
+            attackAnim = "rightattack";
+        } else {
+            attackAnim = this.lastFaceRight ? "rightattack" : "leftattack";
         }
-        if (k === 'j' && !this.isAttacking && this.attackTimer <= 0) {
-            console.log('🔍 开始执行攻击');
-            this.isAttacking = true;
-            this.attackTimer = this.attackCD;
+        this.animation.play(attackAnim);
 
-            let attackAnim = "";
-            if (this.keyA) {
-                attackAnim = "leftattack";
-            } else if (this.keyD) {
-                attackAnim = "rightattack";
-            } else {
-                // 静止时使用最后朝向
-                attackAnim = this.lastFaceRight ? "rightattack" : "leftattack";
-            }
-            console.log('🔍 播放攻击动画: ' + attackAnim);
-            this.animation.play(attackAnim);
+        this.scheduleOnce(() => {
+            this.checkAttackHit();
+        }, 0.15);
 
-            // ✅ 在动画播放到一半时检测伤害
-            this.scheduleOnce(() => {
-                console.log('🔍 0.15秒后，准备检测攻击命中');
-                this.checkAttackHit();
-            }, 0.15);
+        setTimeout(() => {
+            this.isAttacking = false;
+        }, 350);
+    }
 
-            setTimeout(() => {
-                this.isAttacking = false;
-            }, 350);
+    private onKeyDown(event: EventKeyboard) {
+        switch (event.keyCode) {
+            case KeyCode.KEY_A: this.keyA = true; break;
+            case KeyCode.KEY_D: this.keyD = true; break;
+            case KeyCode.KEY_K: this.keyK = true; break;
+            case KeyCode.KEY_J: this.tryAttack(); break;
         }
     }
 
-    private onKeyUp(e: KeyboardEvent) {
-        const k = e.key.toLowerCase();
-        if (k === 'a') this.keyA = false;
-        if (k === 'd') this.keyD = false;
-        if (k === 'k') this.keyK = false;
+    private onKeyUp(event: EventKeyboard) {
+        switch (event.keyCode) {
+            case KeyCode.KEY_A: this.keyA = false; break;
+            case KeyCode.KEY_D: this.keyD = false; break;
+            case KeyCode.KEY_K: this.keyK = false; break;
+        }
     }
     
     private playAnimation(animName: string) {
@@ -272,7 +298,9 @@ export class move extends Component {
     onCollisionExit(other: any) {}
 
     onDestroy() {
-        document.removeEventListener('keydown', this.onKeyDownHandler);
-        document.removeEventListener('keyup', this.onKeyUpHandler);
+        input.off(Input.EventType.KEY_DOWN, this.onKeyDown, this);
+        input.off(Input.EventType.KEY_UP, this.onKeyUp, this);
+        if (this._onKeyDownDom) document.removeEventListener('keydown', this._onKeyDownDom);
+        if (this._onKeyUpDom) document.removeEventListener('keyup', this._onKeyUpDom);
     }
 }
