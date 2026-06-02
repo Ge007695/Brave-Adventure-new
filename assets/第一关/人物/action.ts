@@ -6,6 +6,12 @@ export class move extends Component {
     @property moveSpeed: number = 300;
     @property jumpForce: number = 500;
     @property totalMapWidth: number = 5120;
+    @property({ tooltip: '进入关底区域并触发BOSS的世界X坐标' })
+    bossTriggerX: number = 3840;
+    @property({ tooltip: '最后一张背景的左边界世界X坐标' })
+    finalBackgroundLeftX: number = 3840;
+    @property({ tooltip: '角色在地图左右边界保留的距离' })
+    boundaryPadding: number = 20;
 
     private rb!: RigidBody2D;
     private maxJump = 2;
@@ -38,6 +44,7 @@ export class move extends Component {
     private isAttacking: boolean = false;
     private attackCD: number = 0.5;
     private attackTimer: number = 0;
+    private bossAreaLocked: boolean = false;
 
     /** 攻击检测范围 */
     @property
@@ -116,6 +123,8 @@ export class move extends Component {
             this.attackTimer -= deltaTime;
         }
 
+        this.updateBossAreaLock();
+
         if (this.isAttacking) {
             const vel = this.rb.linearVelocity;
             this.rb.linearVelocity = new Vec2(0, vel.y);
@@ -124,9 +133,11 @@ export class move extends Component {
 
         let dir = 0;
         const x = this.node.worldPosition.x;
+        const minX = this.getMoveMinX();
+        const maxX = this.totalMapWidth - this.boundaryPadding;
         
-        if (this.keyA && x > 20) dir = -1;
-        if (this.keyD && x < this.totalMapWidth - 20) dir = 1;
+        if (this.keyA && x > minX) dir = -1;
+        if (this.keyD && x < maxX) dir = 1;
 
         // ✅ 记录最后朝向
         if (dir === 1) this.lastFaceRight = true;
@@ -167,6 +178,38 @@ export class move extends Component {
         this.lastPosY = currentPosY;
         this.lastKeyK = this.keyK;
         this.updateAnimation();
+    }
+
+    private updateBossAreaLock() {
+        if (!this.bossAreaLocked && this.node.worldPosition.x >= this.bossTriggerX) {
+            this.bossAreaLocked = true;
+        }
+
+        if (!this.bossAreaLocked) return;
+
+        const minX = this.getMoveMinX();
+        const maxX = this.totalMapWidth - this.boundaryPadding;
+        const pos = this.node.worldPosition;
+        const clampedX = Math.max(minX, Math.min(maxX, pos.x));
+
+        if (Math.abs(clampedX - pos.x) > 0.001) {
+            this.node.setWorldPosition(clampedX, pos.y, pos.z);
+
+            if (this.rb) {
+                const vel = this.rb.linearVelocity;
+                const shouldStopLeft = clampedX === minX && vel.x < 0;
+                const shouldStopRight = clampedX === maxX && vel.x > 0;
+                if (shouldStopLeft || shouldStopRight) {
+                    this.rb.linearVelocity = new Vec2(0, vel.y);
+                }
+            }
+        }
+    }
+
+    private getMoveMinX(): number {
+        return this.bossAreaLocked
+            ? this.finalBackgroundLeftX + this.boundaryPadding
+            : this.boundaryPadding;
     }
     
     private updateAnimation() {
@@ -283,7 +326,7 @@ export class move extends Component {
     }
 
     /**
-     * 检测攻击是否命中小怪
+     * 检测攻击是否命中敌人
      */
     private checkAttackHit() {
         const myPos = this.node.worldPosition;
@@ -293,25 +336,33 @@ export class move extends Component {
         if (!canvas) return;
 
         const enemies: any[] = [];
-        this.findAllOctopusInChildren(canvas, enemies);
+        this.findAllAttackTargetsInChildren(canvas, enemies);
 
         let hitCount = 0;
         for (const enemy of enemies) {
             const enemyNode = enemy.node as Node;
             if (!enemyNode || !enemyNode.activeInHierarchy) continue;
 
-            const enemyPos = enemyNode.worldPosition;
+            const enemyPos = typeof enemy.getAttackHitPosition === 'function'
+                ? enemy.getAttackHitPosition()
+                : enemyNode.worldPosition;
             const dx = enemyPos.x - myPos.x;
             const dy = Math.abs(enemyPos.y - myPos.y);
+            const rangeX = typeof enemy.getAttackHitRangeX === 'function'
+                ? enemy.getAttackHitRangeX()
+                : this.attackRange;
+            const rangeY = typeof enemy.getAttackHitRangeY === 'function'
+                ? enemy.getAttackHitRangeY()
+                : 120;
 
             const inFront = attackDir > 0 ? dx > 0 : dx < 0;
-            const inXRange = Math.abs(dx) <= this.attackRange;
-            const inYRange = dy <= 120;
+            const inXRange = Math.abs(dx) <= rangeX;
+            const inYRange = dy <= rangeY;
 
             if (inFront && inXRange && inYRange && typeof enemy.takeDamage === 'function') {
                 enemy.takeDamage(this.attackDamage);
                 hitCount++;
-                console.log(`⚔️ 攻击命中小怪: ${enemyNode.name}`);
+                console.log(`⚔️ 攻击命中敌人: ${enemyNode.name}`);
             }
         }
 
@@ -320,14 +371,19 @@ export class move extends Component {
         }
     }
 
-    private findAllOctopusInChildren(node: Node, result: any[]) {
+    private findAllAttackTargetsInChildren(node: Node, result: any[]) {
         const octopus = node.getComponent('Octopus');
         if (octopus) {
             result.push(octopus);
         }
 
+        const finalBoss = node.getComponent('FinalBoss');
+        if (finalBoss) {
+            result.push(finalBoss);
+        }
+
         for (const child of node.children) {
-            this.findAllOctopusInChildren(child, result);
+            this.findAllAttackTargetsInChildren(child, result);
         }
     }
 
