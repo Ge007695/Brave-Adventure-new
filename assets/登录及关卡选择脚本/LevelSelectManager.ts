@@ -40,8 +40,13 @@ export class LevelSelectManager extends Component {
             .to(0.2, { scale: Vec3.ONE.clone().multiplyScalar(0.95) })
             .to(0.2, { scale: Vec3.ONE })
             .call(() => {
-                // 🔥 标准场景加载，无任何错误
-                director.loadScene(levelId === 1 ? "Level-one" : `Level_${levelId}`);
+                // 根据关卡ID映射到对应的场景名称
+                const sceneMap: Record<number, string> = {
+                    1: "Level-one",
+                    2: "Level-two",
+                };
+                const sceneName = sceneMap[levelId] || `Level_${levelId}`;
+                director.loadScene(sceneName);
             })
             .start();
     }
