@@ -268,6 +268,7 @@
     "uiOffsetY": 220,
     "mapLeft": 0,
     "mapRight": 5120,
+    "enableBoss": false,
     "_id": "6fhkETt7RMrJQcrxf5Il7f"
   },
   {

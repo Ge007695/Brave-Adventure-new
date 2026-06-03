@@ -85,20 +85,25 @@ export class move extends Component {
     }
 
     start() {
-        if (!PhysicsSystem2D.instance.enable) {
-            PhysicsSystem2D.instance.enable = true;
-        }
+        // 强制重启物理引擎，防止从暂停状态切场景后物理卡死
+        PhysicsSystem2D.instance.enable = false;
+        PhysicsSystem2D.instance.enable = true;
 
         this.scheduleOnce(() => {
             this.initRigidBody();
-        }, 0.05);
+        }, 0.1);
     }
-    
+
     private initRigidBody() {
         this.rb = this.getComponent(RigidBody2D);
         if (this.rb) {
             this.rb.fixedRotation = true;
             this.rb.wakeUp();
+            // 再确保物理系统运行中
+            if (!PhysicsSystem2D.instance.enable) {
+                PhysicsSystem2D.instance.enable = true;
+            }
+            this.rb.applyForceToCenter(new Vec2(0, 0), true); // 轻微激活
         } else {
             console.error("❌ 找不到RigidBody2D组件！");
         }
@@ -242,7 +247,9 @@ export class move extends Component {
         } else {
             attackAnim = this.lastFaceRight ? "rightattack" : "leftattack";
         }
-        this.animation.play(attackAnim);
+        if (this.animation) {
+            this.animation.play(attackAnim);
+        }
 
         this.scheduleOnce(() => {
             this.checkAttackHit();
