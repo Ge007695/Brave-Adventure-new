@@ -230,7 +230,7 @@
     "_priority": 0,
     "_fov": 45,
     "_fovAxis": 0,
-    "_orthoHeight": 463.3743016759777,
+    "_orthoHeight": 434.7800149142431,
     "_near": 0,
     "_far": 2000,
     "_color": {
@@ -464,7 +464,7 @@
     },
     "_enabled": true,
     "__prefab": null,
-    "moveSpeed": 20,
+    "moveSpeed": 10,
     "jumpForce": 25,
     "totalMapWidth": 5120,
     "bossTriggerX": 3840,
@@ -4550,8 +4550,8 @@
     "__prefab": null,
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 72.27224452979516,
-      "height": 50.4
+      "width": 72.28407846290082,
+      "height": 50.400000000000006
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -4583,7 +4583,7 @@
     "_string": "100/100",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
-    "_actualFontSize": 20.9765625,
+    "_actualFontSize": 20.953125,
     "_fontSize": 20,
     "_fontFamily": "Arial",
     "_lineHeight": 40,
@@ -4930,8 +4930,8 @@
     "__prefab": null,
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 72.27224452979516,
-      "height": 50.4
+      "width": 72.28407846290082,
+      "height": 50.400000000000006
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -4963,7 +4963,7 @@
     "_string": "100/100",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
-    "_actualFontSize": 20.9765625,
+    "_actualFontSize": 20.953125,
     "_fontSize": 20,
     "_fontFamily": "Arial",
     "_lineHeight": 40,
@@ -5310,8 +5310,8 @@
     "__prefab": null,
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 50.03312674581006,
-      "height": 50.4
+      "width": 50.041320027032064,
+      "height": 50.400000000000006
     },
     "_anchorPoint": {
       "__type__": "cc.Vec2",
@@ -5343,7 +5343,7 @@
     "_string": "0/100",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
-    "_actualFontSize": 20.9765625,
+    "_actualFontSize": 20.953125,
     "_fontSize": 20,
     "_fontFamily": "Arial",
     "_lineHeight": 40,
@@ -5956,7 +5956,7 @@
       "__uuid__": "b3f5c1f8-870a-4b08-8b8d-71eb07cac320@f9941",
       "__expectedType__": "cc.SpriteFrame"
     },
-    "breathDamage": 15,
+    "breathDamage": 10,
     "breathRange": 300,
     "breathCooldown": 4,
     "breathFlashDuration": 0.6,
@@ -5964,11 +5964,11 @@
       "__uuid__": "e439d61d-4c5c-4b80-aa24-50b1e44db32f@f9941",
       "__expectedType__": "cc.SpriteFrame"
     },
-    "tentacleDamage": 15,
+    "tentacleDamage": 10,
     "tentacleRange": 250,
     "tentacleCooldown": 3,
     "tentacleFlashDuration": 0.4,
-    "maxHp": 5,
+    "maxHp": 8,
     "expReward": 10,
     "moveSpeed": 80,
     "minMoveTime": 1.2,
@@ -7761,7 +7761,7 @@
     "attackDamage": 10,
     "inkBulletCount": 3,
     "inkBulletSpeed": 320,
-    "inkBulletSpreadY": 60,
+    "inkBulletSpreadY": 75,
     "inkSpawnOffsetX": 70,
     "inkSpawnOffsetY": 10,
     "inkBulletScale": 0.55,
@@ -7997,7 +7997,7 @@
     "attackDamage": 10,
     "inkBulletCount": 3,
     "inkBulletSpeed": 320,
-    "inkBulletSpreadY": 60,
+    "inkBulletSpreadY": 75,
     "inkSpawnOffsetX": 70,
     "inkSpawnOffsetY": 10,
     "inkBulletScale": 0.55,

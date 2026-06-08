@@ -82,6 +82,8 @@ export class FinalBoss extends Component {
     // 攻击图闪烁
     private attackFlashTimer: number = 0;
     private flashAttackSprite: SpriteFrame | null = null;
+    // 全局攻击锁：一次攻击后至少等这么久才能下一次
+    private globalAttackLock: number = 0;
 
     // ── 初始化 ──
     public init(player: Node | null, left: number, right: number, gy: number) {
@@ -125,6 +127,7 @@ export class FinalBoss extends Component {
         // 冷却计时
         if (this.breathTimer > 0) this.breathTimer -= deltaTime;
         if (this.tentacleTimer > 0) this.tentacleTimer -= deltaTime;
+        if (this.globalAttackLock > 0) this.globalAttackLock -= deltaTime;
 
         // 受击恢复
         this.updateHitSprite(deltaTime);
@@ -132,16 +135,23 @@ export class FinalBoss extends Component {
         // 攻击图闪烁恢复
         this.updateAttackFlash(deltaTime);
 
-        // 攻击检测（只要没在闪烁攻击图就可以攻击）
+        // 攻击检测（全局锁防止连续攻击）
         const player = this.findPlayer();
-        if (player && this.attackFlashTimer <= 0) {
+        if (player && this.attackFlashTimer <= 0 && this.globalAttackLock <= 0) {
             const dist = this.getDistance(player);
-            // 原子吐息 — 远距离优先
-            if (this.breathTimer <= 0 && dist <= this.breathRange) {
+            const breathReady = this.breathTimer <= 0 && dist <= this.breathRange;
+            const tentacleReady = this.tentacleTimer <= 0 && dist <= this.tentacleRange;
+
+            if (breathReady && tentacleReady) {
+                // 两种都就绪时随机选
+                if (Math.random() < 0.5) {
+                    this.doBreathAttack(player);
+                } else {
+                    this.doTentacleAttack(player);
+                }
+            } else if (breathReady) {
                 this.doBreathAttack(player);
-            }
-            // 触手攻击 — 近距离
-            else if (this.tentacleTimer <= 0 && dist <= this.tentacleRange) {
+            } else if (tentacleReady) {
                 this.doTentacleAttack(player);
             }
         }
@@ -175,11 +185,12 @@ export class FinalBoss extends Component {
         if (old && old.isValid) return;
         const n = new Node('BossName');
         this.node.addChild(n);
-        n.setPosition(0, 320, 0);
-        n.addComponent(UITransform).setContentSize(300, 64);
+        n.setPosition(0, 555, 0);
+        n.addComponent(UITransform).setContentSize(650, 100);
         const l = n.addComponent(Label);
         l.string = 'BOSS · 深海巨章';
-        l.fontSize = 36;
+        l.fontSize = 50;
+        l.lineHeight = 80;
         l.horizontalAlign = Label.HorizontalAlign.CENTER;
         l.verticalAlign = Label.VerticalAlign.CENTER;
         l.color = new Color(255, 62, 72, 255);
@@ -245,12 +256,18 @@ export class FinalBoss extends Component {
         const target = this.moveDir > 0 ? base : -base;
         if (Math.abs(sx - target) > 0.001) {
             this.node.setScale(target, this.node.scale.y, this.node.scale.z);
+            // 血条和名字始终正向显示，不被BOSS翻转
+            const hpBar = this.node.getChildByName('BossHpBar');
+            if (hpBar) hpBar.setScale(1 / target, 1, 1);
+            const bossName = this.node.getChildByName('BossName');
+            if (bossName) bossName.setScale(1 / target, 1, 1);
         }
     }
 
     // ── 原子吐息攻击 ──
     private doBreathAttack(player: Node) {
-        this.breathTimer = this.breathCooldown;
+        this.breathTimer = this.breathCooldown * (0.7 + Math.random() * 0.6);
+        this.globalAttackLock = 2.5 + Math.random() * 0.5;
         const stats = player.getComponent(PlayerStats);
         if (stats) stats.takeDamage(this.breathDamage);
         this.flashAttack(this.breathSprite, this.breathFlashDuration);
@@ -259,7 +276,8 @@ export class FinalBoss extends Component {
 
     // ── 触手攻击 ──
     private doTentacleAttack(player: Node) {
-        this.tentacleTimer = this.tentacleCooldown;
+        this.tentacleTimer = this.tentacleCooldown * (0.7 + Math.random() * 0.6);
+        this.globalAttackLock = 2.5 + Math.random() * 0.5;
         const stats = player.getComponent(PlayerStats);
         if (stats) stats.takeDamage(this.tentacleDamage);
         this.flashAttack(this.tentacleSprite, this.tentacleFlashDuration);
@@ -710,10 +728,10 @@ export class FinalBoss extends Component {
     private createHpBar() {
         const old = this.node.getChildByName('BossHpBar');
         if (old && old.isValid) old.destroy();
-        const bw = 300, bh = 18;
+        const bw = 260, bh = 30;
         const bar = new Node('BossHpBar');
         this.node.addChild(bar);
-        bar.setPosition(0, 260, 0);
+        bar.setPosition(0, 500, 0);
         bar.addComponent(UITransform).setContentSize(bw, 50);
 
         const bg = bar.addComponent(Graphics);
@@ -743,7 +761,7 @@ export class FinalBoss extends Component {
 
     private updateHpBar() {
         if (!this.hpBarFill || !this.hpLabel) return;
-        const bw = 300, bh = 18;
+        const bw = 260, bh = 18;
         const pct = Math.max(0, this.currentHp / this.maxHp);
         this.hpBarFill.clear();
         this.hpBarFill.fillColor = pct > 0.35 ? new Color(230, 45, 62, 255) : new Color(255, 132, 45, 255);
