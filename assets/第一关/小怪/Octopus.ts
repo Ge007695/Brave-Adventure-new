@@ -1,4 +1,4 @@
-﻿import { _decorator, Component, Sprite, SpriteFrame, Node, Color, UITransform, Label, Graphics } from 'cc';
+﻿import { _decorator, Component, ERaycast2DType, PhysicsSystem2D, Sprite, SpriteFrame, Node, Color, UITransform, Label, Graphics, Vec2 } from 'cc';
 import { GameOverUI } from './GameOverUI';
 import { PlayerStats } from '../人物/PlayerStats';
 import { InkBullet } from './InkBullet';
@@ -242,7 +242,23 @@ export class Octopus extends Component {
     private doJump() {
         if (!this.isGrounded) return;
 
-        this.velocityY = this.jumpForce;
+        // 射线检测头上有没有平台障碍物，防止穿墙
+        const from = this.node.worldPosition.clone();
+        const to = new Vec2(from.x, from.y + 200);
+        const hits = PhysicsSystem2D.instance.raycast(from, to, ERaycast2DType.Closest);
+        if (hits.length > 0) {
+            const ceilingY = hits[0].point.y;
+            const clearance = ceilingY - from.y;
+            // 头上空间不够跳跃高度，就缩减跳跃力度甚至取消
+            if (clearance < 40) {
+                return; // 头顶太低，不跳
+            }
+            // 缩减跳跃力，让它刚好不撞头
+            const maxReach = Math.sqrt(2 * this.gravity * clearance);
+            this.velocityY = Math.min(this.jumpForce, maxReach * 0.85);
+        } else {
+            this.velocityY = this.jumpForce;
+        }
         this.isGrounded = false;
     }
 

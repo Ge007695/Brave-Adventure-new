@@ -1,5 +1,5 @@
 import { _decorator, Component, Node, view } from 'cc';
-import { FinalBoss } from './FinalBoss';
+import { FinalBoss } from '../小怪/FinalBoss';
 const { ccclass, property } = _decorator;
 
 @ccclass('CameraFollow')
