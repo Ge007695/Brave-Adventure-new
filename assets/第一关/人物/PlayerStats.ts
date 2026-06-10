@@ -1,8 +1,17 @@
-import { _decorator, Component } from 'cc';
+import { _decorator, Component, AudioSource, AudioClip } from 'cc';
 const { ccclass, property } = _decorator;
 
 @ccclass('PlayerStats')
 export class PlayerStats extends Component {
+    /** 受击音效（默认小怪攻击音效） */
+    @property({ type: AudioClip, tooltip: '默认受击音效，可用于小怪攻击' })
+    hitClip: AudioClip | null = null;
+
+    @property({ tooltip: '受击音效音量 (0~1)', range: [0, 1, 0.01], slide: true })
+    hitClipVolume: number = 1;
+
+    private _audioSource: AudioSource | null = null;
+
     /** 最大血量 */
     @property
     maxHealth: number = 100;
@@ -52,13 +61,29 @@ export class PlayerStats extends Component {
     start() {
         this._health = this.maxHealth;
         this._mana = this.maxMana;
+
+        // 初始化受击音效
+        this._audioSource = this.getComponent(AudioSource) || this.addComponent(AudioSource);
+        this._audioSource.loop = false;
     }
-    
-    /** 受到伤害 */
-    takeDamage(damage: number) {
+
+    /**
+     * 受到伤害
+     * @param damage 伤害值
+     * @param customHitClip 可选，传入自定义受击音效（如BOSS攻击音效）
+     * @param customVolume 可选，传入自定义音量 (0~1)，仅当传入customHitClip时生效
+     */
+    takeDamage(damage: number, customHitClip?: AudioClip, customVolume?: number) {
         if (damage <= 0) return;
         this.health -= damage;
         console.log(`💔 受到伤害: ${damage}，剩余血量: ${this._health}`);
+
+        // 播放受击音效：优先使用传入的自定义音效，否则使用默认hitClip
+        const clip = customHitClip || this.hitClip;
+        const volume = customHitClip ? (customVolume ?? 1) : this.hitClipVolume;
+        if (clip && this._audioSource) {
+            this._audioSource.playOneShot(clip, volume);
+        }
     }
     
     /** 恢复生命 */

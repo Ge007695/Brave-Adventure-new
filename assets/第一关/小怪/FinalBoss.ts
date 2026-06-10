@@ -1,4 +1,4 @@
-import { _decorator, Color, Component, Graphics, Label, Node, Sprite, SpriteFrame, UITransform } from 'cc';
+import { _decorator, Color, Component, Graphics, Label, Node, Sprite, SpriteFrame, UITransform, AudioClip } from 'cc';
 import { PlayerStats } from '../人物/PlayerStats';
 const { ccclass, property } = _decorator;
 
@@ -48,6 +48,13 @@ export class FinalBoss extends Component {
     @property({ tooltip: '地面Y坐标' })           groundY: number = 360;
     @property({ tooltip: '最短跳跃间隔(秒)' })    minJumpInterval: number = 2.0;
     @property({ tooltip: '最长跳跃间隔(秒)' })    maxJumpInterval: number = 5.0;
+
+    /** BOSS 攻击命中玩家时的音效 */
+    @property({ type: AudioClip, tooltip: 'BOSS攻击命中玩家音效' })
+    bossHitClip: AudioClip | null = null;
+
+    @property({ tooltip: 'BOSS攻击音效音量 (0~1)', range: [0, 1, 0.01], slide: true })
+    bossHitClipVolume: number = 1;
 
     // ── 受击 ──
     @property({ tooltip: '受击图显示时间(秒)' }) hitFlashDuration: number = 0.35;
@@ -269,7 +276,7 @@ export class FinalBoss extends Component {
         this.breathTimer = this.breathCooldown * (0.7 + Math.random() * 0.6);
         this.globalAttackLock = 2.5 + Math.random() * 0.5;
         const stats = player.getComponent(PlayerStats);
-        if (stats) stats.takeDamage(this.breathDamage);
+        if (stats) stats.takeDamage(this.breathDamage, this.bossHitClip, this.bossHitClipVolume);
         this.flashAttack(this.breathSprite, this.breathFlashDuration);
         this.showBreathEffect(player);
     }
@@ -279,7 +286,7 @@ export class FinalBoss extends Component {
         this.tentacleTimer = this.tentacleCooldown * (0.7 + Math.random() * 0.6);
         this.globalAttackLock = 2.5 + Math.random() * 0.5;
         const stats = player.getComponent(PlayerStats);
-        if (stats) stats.takeDamage(this.tentacleDamage);
+        if (stats) stats.takeDamage(this.tentacleDamage, this.bossHitClip, this.bossHitClipVolume);
         this.flashAttack(this.tentacleSprite, this.tentacleFlashDuration);
         this.showTentacleEffect(player);
     }

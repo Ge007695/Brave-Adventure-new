@@ -1,4 +1,4 @@
-﻿import { _decorator, Component, RigidBody2D, Vec2, PhysicsSystem2D, Animation, Node, input, Input, EventKeyboard, KeyCode } from 'cc';
+﻿import { _decorator, Component, RigidBody2D, Vec2, PhysicsSystem2D, Animation, Node, AudioSource, AudioClip, input, Input, EventKeyboard, KeyCode } from 'cc';
 const { ccclass, property } = _decorator;
 
 @ccclass('move')
@@ -54,11 +54,24 @@ export class move extends Component {
     @property
     attackDamage: number = 1;
 
+    /** 攻击音效 */
+    @property({ type: AudioClip })
+    hitClip: AudioClip | null = null;
+
+    @property({ tooltip: '攻击音效音量 (0~1)', range: [0, 1, 0.01], slide: true })
+    hitClipVolume: number = 1;
+
+    private _audioSource: AudioSource | null = null;
+
     // DOM 事件兜底：画布失焦时仍能接收键盘输入
     private _onKeyDownDom: ((e: KeyboardEvent) => void) | null = null;
     private _onKeyUpDom: ((e: KeyboardEvent) => void) | null = null;
 
     onLoad() {
+        // 初始化音效
+        this._audioSource = this.getComponent(AudioSource) || this.addComponent(AudioSource);
+        this._audioSource.loop = false;
+
         // 1. Cocos 原生输入系统
         input.on(Input.EventType.KEY_DOWN, this.onKeyDown, this);
         input.on(Input.EventType.KEY_UP, this.onKeyUp, this);
@@ -238,6 +251,11 @@ export class move extends Component {
 
         this.isAttacking = true;
         this.attackTimer = this.attackCD;
+
+        // 播放攻击音效
+        if (this.hitClip && this._audioSource) {
+            this._audioSource.playOneShot(this.hitClip, this.hitClipVolume);
+        }
 
         let attackAnim = "";
         if (this.keyA) {
