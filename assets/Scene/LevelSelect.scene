@@ -20,7 +20,7 @@
         "__id__": 2
       },
       {
-        "__id__": 68
+        "__id__": 69
       }
     ],
     "_active": true,
@@ -55,7 +55,7 @@
     },
     "autoReleaseAssets": false,
     "_globals": {
-      "__id__": 70
+      "__id__": 71
     },
     "_id": "7c5336f6-880b-4aee-9aa4-dc839bde8b88"
   },
@@ -85,6 +85,9 @@
       },
       {
         "__id__": 67
+      },
+      {
+        "__id__": 68
       }
     ],
     "_prefab": null,
@@ -374,7 +377,7 @@
     "__prefab": null,
     "_contentSize": {
       "__type__": "cc.Size",
-      "width": 399.9844509913954,
+      "width": 399.98923417132215,
       "height": 100.8
     },
     "_anchorPoint": {
@@ -407,7 +410,7 @@
     "_string": "关卡选择",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
-    "_actualFontSize": 104.4140625,
+    "_actualFontSize": 104.8828125,
     "_fontSize": 100,
     "_fontFamily": "Arial",
     "_lineHeight": 80,
@@ -661,7 +664,7 @@
     "_string": "第一关",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
-    "_actualFontSize": 20.8828125,
+    "_actualFontSize": 20.9765625,
     "_fontSize": 20,
     "_fontFamily": "Arial",
     "_lineHeight": 40,
@@ -973,7 +976,7 @@
     "_string": "第二关",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
-    "_actualFontSize": 20.8828125,
+    "_actualFontSize": 20.9765625,
     "_fontSize": 20,
     "_fontFamily": "Arial",
     "_lineHeight": 40,
@@ -1285,7 +1288,7 @@
     "_string": "第三关",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
-    "_actualFontSize": 20.8828125,
+    "_actualFontSize": 20.9765625,
     "_fontSize": 20,
     "_fontFamily": "Arial",
     "_lineHeight": 40,
@@ -1597,7 +1600,7 @@
     "_string": "第四关",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
-    "_actualFontSize": 20.8828125,
+    "_actualFontSize": 20.9765625,
     "_fontSize": 20,
     "_fontFamily": "Arial",
     "_lineHeight": 40,
@@ -1909,7 +1912,7 @@
     "_string": "第五关",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
-    "_actualFontSize": 20.8828125,
+    "_actualFontSize": 20.9765625,
     "_fontSize": 20,
     "_fontFamily": "Arial",
     "_lineHeight": 40,
@@ -2221,7 +2224,7 @@
     "_string": "第六关",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
-    "_actualFontSize": 20.8828125,
+    "_actualFontSize": 20.9765625,
     "_fontSize": 20,
     "_fontFamily": "Arial",
     "_lineHeight": 40,
@@ -2533,7 +2536,7 @@
     "_string": "返回登录",
     "_horizontalAlign": 1,
     "_verticalAlign": 1,
-    "_actualFontSize": 20.8828125,
+    "_actualFontSize": 20.9765625,
     "_fontSize": 20,
     "_fontFamily": "Arial",
     "_lineHeight": 40,
@@ -2733,7 +2736,7 @@
     "_priority": 0,
     "_fov": 45,
     "_fovAxis": 0,
-    "_orthoHeight": 477.66554433221097,
+    "_orthoHeight": 463.3743016759777,
     "_near": 0,
     "_far": 2000,
     "_color": {
@@ -2912,6 +2915,18 @@
     "_id": "c5V1EV8IpMtrIvY1OE9t2u"
   },
   {
+    "__type__": "e9fb2Z7+PpBbKe1YkAcLJMV",
+    "_name": "",
+    "_objFlags": 0,
+    "__editorExtras__": {},
+    "node": {
+      "__id__": 2
+    },
+    "_enabled": true,
+    "__prefab": null,
+    "_id": "6cJSjs525KhbcQkKrpatg4"
+  },
+  {
     "__type__": "cc.Node",
     "_name": "LevelDataManager",
     "_objFlags": 0,
@@ -2923,7 +2938,7 @@
     "_active": true,
     "_components": [
       {
-        "__id__": 69
+        "__id__": 70
       }
     ],
     "_prefab": null,
@@ -2962,7 +2977,7 @@
     "_objFlags": 0,
     "__editorExtras__": {},
     "node": {
-      "__id__": 68
+      "__id__": 69
     },
     "_enabled": true,
     "__prefab": null,
@@ -2971,28 +2986,28 @@
   {
     "__type__": "cc.SceneGlobals",
     "ambient": {
-      "__id__": 71
-    },
-    "shadows": {
       "__id__": 72
     },
-    "_skybox": {
+    "shadows": {
       "__id__": 73
     },
-    "fog": {
+    "_skybox": {
       "__id__": 74
     },
-    "octree": {
+    "fog": {
       "__id__": 75
     },
-    "skin": {
+    "octree": {
       "__id__": 76
     },
-    "lightProbeInfo": {
+    "skin": {
       "__id__": 77
     },
-    "postSettings": {
+    "lightProbeInfo": {
       "__id__": 78
+    },
+    "postSettings": {
+      "__id__": 79
     },
     "bakedWithStationaryMainLight": false,
     "bakedWithHighpLightmap": false

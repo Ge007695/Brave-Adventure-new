@@ -12,6 +12,9 @@ export class PlayerStats extends Component {
 
     private _audioSource: AudioSource | null = null;
 
+    /** 受到伤害时的倍率（Buff系统使用，默认为1，护盾时设为0.5） */
+    public damageMultiplier: number = 1;
+
     /** 最大血量 */
     @property
     maxHealth: number = 100;
@@ -75,8 +78,9 @@ export class PlayerStats extends Component {
      */
     takeDamage(damage: number, customHitClip?: AudioClip, customVolume?: number) {
         if (damage <= 0) return;
-        this.health -= damage;
-        console.log(`💔 受到伤害: ${damage}，剩余血量: ${this._health}`);
+        const actualDamage = Math.max(1, Math.round(damage * this.damageMultiplier));
+        this.health -= actualDamage;
+        console.log(`💔 受到伤害: ${actualDamage} (原始 ${damage} × ${this.damageMultiplier})，剩余血量: ${this._health}`);
 
         // 播放受击音效：优先使用传入的自定义音效，否则使用默认hitClip
         const clip = customHitClip || this.hitClip;
