@@ -1,4 +1,4 @@
-﻿import { _decorator, Component, RigidBody2D, Vec2, PhysicsSystem2D, Animation, Node, AudioSource, AudioClip, input, Input, EventKeyboard, KeyCode } from 'cc';
+﻿import { _decorator, Component, RigidBody2D, Vec2, PhysicsSystem2D, Animation, Node, AudioSource, AudioClip, Prefab, instantiate, input, Input, EventKeyboard, KeyCode } from 'cc';
 const { ccclass, property } = _decorator;
 
 @ccclass('move')
@@ -33,8 +33,10 @@ export class move extends Component {
         this.keyA = false;
         this.keyD = false;
         this.keyK = false;
+        this.keyU = false;
         this.lastKeyK = false;
         this.lastKeyJ = false;
+        this.lastKeyU = false;
         console.log('🔄 输入状态已重置');
     }
 
@@ -45,6 +47,12 @@ export class move extends Component {
     private attackCD: number = 0.5;
     private attackTimer: number = 0;
     private bossAreaLocked: boolean = false;
+
+    // 火箭攻击状态
+    private isLaunching: boolean = false;
+    private rocketTimer: number = 0;
+    private keyU: boolean = false;
+    private lastKeyU: boolean = false;
 
     /** 攻击检测范围 */
     @property
@@ -60,6 +68,29 @@ export class move extends Component {
 
     @property({ tooltip: '攻击音效音量 (0~1)', range: [0, 1, 0.01], slide: true })
     hitClipVolume: number = 1;
+
+    // ==================== 火箭攻击（远程）相关属性 ====================
+
+    @property({ type: Prefab, tooltip: '火箭子弹预制体（挂载 RocketBullet 脚本）' })
+    rocketBulletPrefab: Prefab | null = null;
+
+    @property({ tooltip: '火箭攻击冷却时间（秒）' })
+    rocketCD: number = 0.8;
+
+    @property({ tooltip: '发射动画名称（朝右）' })
+    rightLaunchAnim: string = 'rightlaunch';
+
+    @property({ tooltip: '发射动画名称（朝左）' })
+    leftLaunchAnim: string = 'leftlaunch';
+
+    @property({ tooltip: '发射动画结束后延迟多久生成子弹（秒）' })
+    launchSpawnDelay: number = 0.15;
+
+    @property({ type: AudioClip, tooltip: '火箭发射音效' })
+    rocketClip: AudioClip | null = null;
+
+    @property({ tooltip: '火箭发射音效音量 (0~1)', range: [0, 1, 0.01], slide: true })
+    rocketClipVolume: number = 1;
 
     private _audioSource: AudioSource | null = null;
 
@@ -83,6 +114,7 @@ export class move extends Component {
                 case 'd': this.keyD = true; break;
                 case 'k': this.keyK = true; break;
                 case 'j': this.tryAttack(); break;
+                case 'u': this.tryRocketAttack(); break;
                 case 'e': this.tryInteract(); break;
             }
         };
@@ -91,6 +123,7 @@ export class move extends Component {
                 case 'a': this.keyA = false; break;
                 case 'd': this.keyD = false; break;
                 case 'k': this.keyK = false; break;
+                case 'u': this.keyU = false; break;
             }
         };
         document.addEventListener('keydown', this._onKeyDownDom);
@@ -141,9 +174,19 @@ export class move extends Component {
             this.attackTimer -= deltaTime;
         }
 
+        if (this.rocketTimer > 0) {
+            this.rocketTimer -= deltaTime;
+        }
+
         this.updateBossAreaLock();
 
         if (this.isAttacking) {
+            const vel = this.rb.linearVelocity;
+            this.rb.linearVelocity = new Vec2(0, vel.y);
+            return;
+        }
+
+        if (this.isLaunching) {
             const vel = this.rb.linearVelocity;
             this.rb.linearVelocity = new Vec2(0, vel.y);
             return;
@@ -231,16 +274,27 @@ export class move extends Component {
     }
     
     private updateAnimation() {
-        if (!this.animation || this.isAttacking) return;
+        if (!this.animation || this.isAttacking || this.isLaunching) return;
 
         let targetAnim: string | null = null;
         if (this.keyD) targetAnim = 'rightmove';
         else if (this.keyA) targetAnim = 'leftmove';
-        
+
         if (targetAnim) {
             const state = this.animation.getState(targetAnim);
             if (!state || !state.isPlaying) this.animation.play(targetAnim);
         } else {
+            // 静止时：跳转到面对方向的移动动画第一帧，作为待机姿态
+            const idleAnim = this.lastFaceRight ? 'rightmove' : 'leftmove';
+            const state = this.animation.getState(idleAnim);
+            if (!state || !state.isPlaying) {
+                this.animation.play(idleAnim);
+            }
+            // 立即跳到第 0 帧，然后停止，角色就不会卡在攻击/发射的最后一帧
+            const idleState = this.animation.getState(idleAnim);
+            if (idleState) {
+                idleState.time = 0;
+            }
             this.animation.stop();
         }
     }
@@ -275,7 +329,70 @@ export class move extends Component {
 
         setTimeout(() => {
             this.isAttacking = false;
+            this.updateAnimation();
         }, 350);
+    }
+
+    /** 火箭攻击逻辑 */
+    private tryRocketAttack() {
+        if (this.isAttacking || this.isLaunching || this.rocketTimer > 0) return;
+        if (!this.rocketBulletPrefab) {
+            console.warn('🚀 火箭子弹预制体未设置！请在编辑器中拖入 rocketBulletPrefab');
+            return;
+        }
+
+        this.isLaunching = true;
+        this.rocketTimer = this.rocketCD;
+
+        // 播放火箭发射音效
+        if (this.rocketClip && this._audioSource) {
+            this._audioSource.playOneShot(this.rocketClip, this.rocketClipVolume);
+        }
+
+        // 播放发射动画
+        const launchAnim = this.lastFaceRight ? this.rightLaunchAnim : this.leftLaunchAnim;
+        if (this.animation) {
+            this.animation.play(launchAnim);
+        }
+
+        // 延迟生成子弹（等发射动画播放到位）
+        this.scheduleOnce(() => {
+            this.spawnRocketBullet();
+        }, this.launchSpawnDelay);
+
+        // 发射动作结束（总时长 = 延迟 + 少量收尾）
+        setTimeout(() => {
+            this.isLaunching = false;
+            this.updateAnimation();
+        }, (this.launchSpawnDelay + 0.2) * 1000);
+    }
+
+    /** 在玩家前方生成火箭子弹 */
+    private spawnRocketBullet() {
+        if (!this.rocketBulletPrefab) return;
+
+        // 找到 Canvas 节点作为子弹的父节点
+        let canvas = this.node.parent;
+        if (!canvas) return;
+
+        const bulletNode = instantiate(this.rocketBulletPrefab);
+        canvas.addChild(bulletNode);
+
+        // 设置子弹初始位置（玩家前方偏移一点）
+        const playerPos = this.node.worldPosition;
+        const dir = this.lastFaceRight ? 1 : -1;
+        const spawnOffsetX = dir * 60; // 在玩家前方60像素生成
+        bulletNode.setWorldPosition(playerPos.x + spawnOffsetX, playerPos.y, 0);
+
+        // 初始化子弹方向
+        const bullet = bulletNode.getComponent('RocketBullet') as any;
+        if (bullet && typeof bullet.init === 'function') {
+            bullet.init(dir);
+        } else {
+            console.warn('🚀 子弹预制体上未找到 RocketBullet 组件！');
+        }
+
+        console.log(`🚀 火箭子弹已生成，方向: ${dir === 1 ? '右' : '左'}`);
     }
 
     /** 交互逻辑：寻找最近的宝箱并尝试打开 */
@@ -316,6 +433,7 @@ export class move extends Component {
             case KeyCode.KEY_D: this.keyD = true; break;
             case KeyCode.KEY_K: this.keyK = true; break;
             case KeyCode.KEY_J: this.tryAttack(); break;
+            case KeyCode.KEY_U: this.tryRocketAttack(); break;
             case KeyCode.KEY_E: this.tryInteract(); break;
         }
     }
@@ -325,6 +443,7 @@ export class move extends Component {
             case KeyCode.KEY_A: this.keyA = false; break;
             case KeyCode.KEY_D: this.keyD = false; break;
             case KeyCode.KEY_K: this.keyK = false; break;
+            case KeyCode.KEY_U: this.keyU = false; break;
         }
     }
     

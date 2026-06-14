@@ -1,23 +1,17 @@
 [
   {
     "__type__": "cc.AnimationClip",
-    "_name": "rightmove",
+    "_name": "rightlaunch",
     "_objFlags": 0,
     "__editorExtras__": {
-      "embeddedPlayerGroups": [
-        {
-          "key": "1781442813403",
-          "name": "animation-clip",
-          "type": "animation-clip"
-        }
-      ]
+      "embeddedPlayerGroups": []
     },
     "_native": "",
     "sample": 60,
-    "speed": 0.1,
+    "speed": 1,
     "wrapMode": 1,
     "enableTrsBlending": false,
-    "_duration": 0.05,
+    "_duration": 0.13333333333333333,
     "_hash": 500763545,
     "_tracks": [
       {
@@ -68,20 +62,15 @@
     "__type__": "cc.ObjectCurve",
     "_times": [
       0,
-      0.016666666666666666,
-      0.03333333333333333
+      0.11666666666666667
     ],
     "_values": [
       {
-        "__uuid__": "6006b742-291f-4504-aa37-ef24c51cc3ea@f9941",
+        "__uuid__": "a1c28716-58f5-49da-8ece-fb8917d704ae@f9941",
         "__expectedType__": "cc.SpriteFrame"
       },
       {
-        "__uuid__": "1973ae2b-aafe-4b37-b7ed-9432db91f286@f9941",
-        "__expectedType__": "cc.SpriteFrame"
-      },
-      {
-        "__uuid__": "aed51f45-d4c1-46ba-affc-5e9d6fa63bbb@f9941",
+        "__uuid__": "148fa1eb-874d-4af8-9396-dcbe442f801d@f9941",
         "__expectedType__": "cc.SpriteFrame"
       }
     ]
