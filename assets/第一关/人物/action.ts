@@ -407,6 +407,11 @@ export class move extends Component {
             result.push(finalBoss);
         }
 
+        const vine = node.getComponent('Vine');
+        if (vine) {
+            result.push(vine);
+        }
+
         for (const child of node.children) {
             this.findAllAttackTargetsInChildren(child, result);
         }
