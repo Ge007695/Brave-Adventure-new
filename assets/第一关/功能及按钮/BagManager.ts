@@ -1,5 +1,6 @@
 import { _decorator, Component, Node, Button, Label, Color, UITransform, Vec2, director, Graphics } from 'cc';
 import { PlayerStats } from '../人物/PlayerStats';
+import { PlayerDataManager } from '../../scripts/data/PlayerDataManager';
 
 const { ccclass, property } = _decorator;
 
@@ -20,6 +21,14 @@ interface BagItem {
  */
 @ccclass('BagManager')
 export class BagManager extends Component {
+
+    // ==================== 编辑器可配置属性 ====================
+
+    @property({ tooltip: '金币数量：大于 0 时覆盖存档，设为 0 则使用存档数据' })
+    editorGold: number = 0;
+
+    // ==================== 内部状态 ====================
+
     private bagBtn: Node | null = null;
     private overlay: Node | null = null;
     private bagPanel: Node | null = null;
@@ -57,10 +66,72 @@ export class BagManager extends Component {
             this.bagSlots.push({ name: '', icon: '', type: '', value: 0, count: 0 });
         }
 
+        // 编辑器金币：大于 0 时直接覆盖存档，设为 0 则使用存档数据
+        const pdm = PlayerDataManager.getInstance();
+        if (this.editorGold > 0) {
+            pdm.setGold(this.editorGold);
+            console.log(`🔧 [编辑器] 金币已设置为 ${this.editorGold}`);
+        } else {
+            // 使用存档数据：将存档金币同步到 editorGold 显示
+            this.editorGold = pdm.getGold();
+        }
+
+        // 从持久数据同步金币到背包
+        this.syncGoldFromPDM();
+
         this.createBagButton();
         this.createOverlay();
         this.createBagPanel();
         this.createConfirmDialog();
+    }
+
+    /**
+     * 将 PlayerDataManager 中的金币同步到背包
+     * 背包中始终有一个金币槽位，数量与 PDM 保持一致
+     */
+    public syncGoldFromPDM(): void {
+        const pdm = PlayerDataManager.getInstance();
+        const gold = pdm.getGold();
+
+        // 查找现有金币槽位
+        for (const slot of this.bagSlots) {
+            if (slot.type === 'coin') {
+                slot.count = gold;
+                slot.name = gold > 0 ? '金币' : '';
+                slot.icon = gold > 0 ? '🪙' : '';
+                if (gold <= 0) {
+                    slot.type = '';
+                    slot.value = 0;
+                }
+                this.refreshAllSlots();
+                return;
+            }
+        }
+
+        // 没有金币槽位，在第一个空格创建
+        if (gold > 0) {
+            for (const slot of this.bagSlots) {
+                if (slot.name === '') {
+                    slot.name = '金币';
+                    slot.icon = '🪙';
+                    slot.type = 'coin';
+                    slot.value = 1;
+                    slot.count = gold;
+                    this.refreshAllSlots();
+                    return;
+                }
+            }
+        }
+    }
+
+    /** 增加金币（同时更新 PDM 和背包显示） */
+    public addGold(amount: number): void {
+        if (amount <= 0) return;
+        const pdm = PlayerDataManager.getInstance();
+        pdm.addGold(amount);
+        this.syncGoldFromPDM();
+        // 同步 editorGold 保持与游戏内金币一致
+        this.editorGold = pdm.getGold();
     }
 
     lateUpdate() {

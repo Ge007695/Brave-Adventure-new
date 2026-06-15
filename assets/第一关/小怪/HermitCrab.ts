@@ -1,5 +1,6 @@
 import { _decorator, Component, Sprite, SpriteFrame, Color, Node, Collider2D } from 'cc';
 import { PlayerStats } from '../人物/PlayerStats';
+import { PlayerDataManager } from '../../scripts/data/PlayerDataManager';
 const { ccclass, property } = _decorator;
 
 /**
@@ -19,6 +20,9 @@ export class HermitCrab extends Component {
     /** 击败后获得的经验值 */
     @property
     expReward: number = 1;
+
+    @property({ tooltip: '击杀后掉落金币数量' })
+    goldReward: number = 3;
 
     /** 小怪血量（被攻击多少次死亡） */
     @property

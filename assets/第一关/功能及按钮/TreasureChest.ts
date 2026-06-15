@@ -221,10 +221,22 @@ export class TreasureChest extends Component {
     private grantReward() {
         if (!this.pickedReward) return;
 
-        // 找到背包管理器，将奖励放入背包
         const bag = this.findBagManager();
-        if (bag && typeof (bag as any).addItem === 'function') {
-            const r = this.pickedReward;
+        if (!bag) return;
+
+        const r = this.pickedReward;
+
+        // 金币类型：走 addGold 同步到 PlayerDataManager（跨场景累积）
+        if (r.type === 'coin') {
+            if (typeof (bag as any).addGold === 'function') {
+                (bag as any).addGold(r.value);
+                console.log(`🪙 宝箱奖励金币 +${r.value}（已同步到全局数据）`);
+            }
+            return;
+        }
+
+        // 其他物品：放入背包
+        if (typeof (bag as any).addItem === 'function') {
             const added = (bag as any).addItem(r.name, r.icon, r.type, r.value, 1);
             if (added) {
                 console.log(`🎒 宝箱奖励已放入背包：${r.icon} ${r.name} x1`);

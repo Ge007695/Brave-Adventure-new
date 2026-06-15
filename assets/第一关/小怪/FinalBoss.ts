@@ -1,5 +1,6 @@
 import { _decorator, Color, Component, Graphics, Label, Node, Sprite, SpriteFrame, UITransform, AudioClip } from 'cc';
 import { PlayerStats } from '../人物/PlayerStats';
+import { PlayerDataManager } from '../../scripts/data/PlayerDataManager';
 const { ccclass, property } = _decorator;
 
 @ccclass('FinalBoss')
@@ -32,6 +33,7 @@ export class FinalBoss extends Component {
     // ── 属性 ──
     @property({ tooltip: '最大血量' })          maxHp: number = 12;
     @property({ tooltip: '击败经验奖励' })       expReward: number = 10;
+    @property({ tooltip: '击杀掉落金币' })       goldReward: number = 50;
 
     // ── 水平移动 ──
     @property({ tooltip: '移动速度(像素/秒)' })  moveSpeed: number = 200;
@@ -782,7 +784,25 @@ export class FinalBoss extends Component {
         if (this.isDead) return;
         this.isDead = true;
         this.addExp();
+        this.dropGold();
         this.node.active = false;
+    }
+
+    private dropGold(): void {
+        if (this.goldReward <= 0) return;
+        PlayerDataManager.getInstance().addGold(this.goldReward);
+        this.tryUpdateBagGold();
+    }
+
+    private tryUpdateBagGold(): void {
+        let node: Node | null = this.node;
+        while (node && node.parent) node = node.parent;
+        if (node) {
+            const bag = (node as any).getComponent('BagManager');
+            if (bag && typeof bag.syncGoldFromPDM === 'function') {
+                bag.syncGoldFromPDM();
+            }
+        }
     }
 
     private addExp() {

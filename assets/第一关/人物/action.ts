@@ -41,7 +41,7 @@ export class move extends Component {
     }
 
     // ✅ 【新增】记录最后朝向（静止时也能正确攻击）
-    private lastFaceRight: boolean = true; 
+    public lastFaceRight: boolean = true;
 
     private isAttacking: boolean = false;
     private attackCD: number = 0.5;
@@ -114,7 +114,7 @@ export class move extends Component {
                 case 'd': this.keyD = true; break;
                 case 'k': this.keyK = true; break;
                 case 'j': this.tryAttack(); break;
-                case 'u': this.tryRocketAttack(); break;
+                case 'h': this.tryRocketAttack(); break;
                 case 'e': this.tryInteract(); break;
             }
         };
@@ -123,7 +123,7 @@ export class move extends Component {
                 case 'a': this.keyA = false; break;
                 case 'd': this.keyD = false; break;
                 case 'k': this.keyK = false; break;
-                case 'u': this.keyU = false; break;
+                case 'h': this.keyU = false; break;
             }
         };
         document.addEventListener('keydown', this._onKeyDownDom);
@@ -433,7 +433,7 @@ export class move extends Component {
             case KeyCode.KEY_D: this.keyD = true; break;
             case KeyCode.KEY_K: this.keyK = true; break;
             case KeyCode.KEY_J: this.tryAttack(); break;
-            case KeyCode.KEY_U: this.tryRocketAttack(); break;
+            case KeyCode.KEY_H: this.tryRocketAttack(); break;
             case KeyCode.KEY_E: this.tryInteract(); break;
         }
     }
@@ -443,7 +443,7 @@ export class move extends Component {
             case KeyCode.KEY_A: this.keyA = false; break;
             case KeyCode.KEY_D: this.keyD = false; break;
             case KeyCode.KEY_K: this.keyK = false; break;
-            case KeyCode.KEY_U: this.keyU = false; break;
+            case KeyCode.KEY_H: this.keyU = false; break;
         }
     }
     

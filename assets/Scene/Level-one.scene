@@ -483,6 +483,13 @@
       "__expectedType__": "cc.AudioClip"
     },
     "hitClipVolume": 0.5,
+    "rocketBulletPrefab": null,
+    "rocketCD": 0.8,
+    "rightLaunchAnim": "rightlaunch",
+    "leftLaunchAnim": "leftlaunch",
+    "launchSpawnDelay": 0.15,
+    "rocketClip": null,
+    "rocketClipVolume": 1,
     "_id": "cefdoC6OhHrocPnqIiYGhE"
   },
   {
@@ -4294,6 +4301,16 @@
     "_enabled": true,
     "__prefab": null,
     "debugMode": false,
+    "resetSkillsOnStart": false,
+    "slashDamage": 2,
+    "slashRange": 500,
+    "slashSpeed": 1000,
+    "healAmount": 30,
+    "whirlwindDamage": 1,
+    "whirlwindRange": 300,
+    "shadowDashDamage": 1,
+    "shadowDashRange": 400,
+    "shadowDashSpeed": 0,
     "_id": "1eN8gyCfROX4EzLOv1cFQX"
   },
   {
@@ -5999,6 +6016,7 @@
     "tentacleFlashDuration": 0.4,
     "maxHp": 8,
     "expReward": 10,
+    "goldReward": 50,
     "moveSpeed": 80,
     "minMoveTime": 1.2,
     "maxMoveTime": 3,
@@ -7344,6 +7362,7 @@
       "__expectedType__": "cc.SpriteFrame"
     },
     "expReward": 1,
+    "goldReward": 3,
     "maxHp": 1,
     "overlapRange": 60,
     "damageCooldown": 0.5,
@@ -7476,6 +7495,7 @@
       "__expectedType__": "cc.SpriteFrame"
     },
     "expReward": 1,
+    "goldReward": 3,
     "maxHp": 1,
     "overlapRange": 60,
     "damageCooldown": 0.5,
@@ -7608,6 +7628,7 @@
       "__expectedType__": "cc.SpriteFrame"
     },
     "expReward": 1,
+    "goldReward": 3,
     "maxHp": 1,
     "overlapRange": 60,
     "damageCooldown": 0.5,
@@ -10125,6 +10146,7 @@
     },
     "_enabled": true,
     "__prefab": null,
+    "editorGold": 0,
     "_id": "2aZv+5oqZAwZVVZqHgd0Nq"
   },
   {

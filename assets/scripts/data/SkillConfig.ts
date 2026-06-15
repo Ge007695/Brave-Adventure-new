@@ -15,6 +15,8 @@ export enum SkillType {
     AOE = 'aoe',
     /** 增益Buff：给玩家加临时增益效果 */
     Buff = 'buff',
+    /** 突进：角色向前冲刺，路径上造成伤害 */
+    Dash = 'dash',
 }
 
 /** 技能配置类型 */
@@ -40,18 +42,18 @@ export interface SkillConfig {
 
 /** 技能数据表 */
 export const SKILLS: Record<string, SkillConfig> = {
-    fireball: {
-        id: 'fireball',
-        name: '火球术',
-        icon: '🔥',
-        description: '朝前方发射一枚火球，命中敌人造成伤害',
+    slash: {
+        id: 'slash',
+        name: '破空斩',
+        icon: '⚔️',
+        description: '短暂蓄力后向前迸发一道巨型剑气，速度极快',
         type: SkillType.Projectile,
-        manaCost: 15,
-        cooldown: 3,
-        price: 30,
-        damage: 5,
-        range: 400,
-        speed: 500,
+        manaCost: 20,
+        cooldown: 4,
+        price: 50,
+        damage: 6,
+        range: 500,
+        speed: 900,
     },
 
     heal: {
@@ -62,7 +64,7 @@ export const SKILLS: Record<string, SkillConfig> = {
         type: SkillType.SelfHeal,
         manaCost: 20,
         cooldown: 8,
-        price: 40,
+        price: 50,
         heal: 30,
     },
 
@@ -74,23 +76,23 @@ export const SKILLS: Record<string, SkillConfig> = {
         type: SkillType.AOE,
         manaCost: 25,
         cooldown: 6,
-        price: 60,
+        price: 50,
         damage: 4,
         range: 300,
     },
 
-    shield: {
-        id: 'shield',
-        name: '护盾',
-        icon: '🛡️',
-        description: '获得持续5秒的护盾，受到伤害减半',
-        type: SkillType.Buff,
-        manaCost: 30,
-        cooldown: 12,
+    shadowDash: {
+        id: 'shadowDash',
+        name: '影刃瞬突',
+        icon: '🌑',
+        description: '化作残影瞬间向前突进，路径上留下暗影刃痕并造成伤害',
+        type: SkillType.Dash,
+        manaCost: 25,
+        cooldown: 8,
         price: 50,
-        duration: 5,
-        buffDamageMul: 1.0,
-        buffDefenseMul: 0.5,
+        damage: 5,
+        range: 350,
+        speed: 2400,
     },
 };
 

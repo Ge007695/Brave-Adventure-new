@@ -104,6 +104,14 @@ export class PlayerDataManager {
         this.save();
     }
 
+    /** 只重置技能解锁和装备状态（保留金币和武器） */
+    resetSkills(): void {
+        const defaults = this.defaultData();
+        this._data.skills = defaults.skills;
+        this.save();
+        console.log('🔧 [PlayerData] 技能数据已重置');
+    }
+
     // ==================== 金币 ====================
 
     getGold(): number {
@@ -115,6 +123,14 @@ export class PlayerDataManager {
         this._data.gold += amount;
         this.save();
         console.log(`🪙 获得金币 +${amount}，当前余额: ${this._data.gold}`);
+    }
+
+    /** 直接设置金币数量（调试/编辑器用） */
+    setGold(amount: number): void {
+        if (amount < 0) amount = 0;
+        this._data.gold = amount;
+        this.save();
+        console.log(`🪙 设置金币为 ${this._data.gold}`);
     }
 
     /** @returns 是否消费成功 */

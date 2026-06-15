@@ -101,16 +101,13 @@ export class ShopPanel extends Component {
         this.overlay.active = false;
         this.overlay.addComponent(UITransform).setContentSize(1280, 720);
         this.fillRect(this.overlay, 1280, 720, new Color(0, 0, 0, 170));
-
-        const btn = this.overlay.addComponent(Button);
-        btn.transition = Button.Transition.NONE;
-        btn.node.on(Button.EventType.CLICK, this.hidePanel, this);
+        // 遮罩不再响应点击，只能通过 ✕ 按钮关闭面板
     }
 
     // ==================== 3. 面板 ====================
 
     private createPanel(): void {
-        const pw = 680, ph = 540;
+        const pw = 700, ph = 560;
 
         this.panel = new Node('ShopPanel');
         this.panel.parent = this.node;
@@ -156,7 +153,7 @@ export class ShopPanel extends Component {
         // 物品网格容器
         this.gridContainer = new Node('GridContainer');
         this.gridContainer.parent = this.panel;
-        this.gridContainer.setPosition(0, -10);
+        this.gridContainer.setPosition(0, -40);
         this.gridContainer.addComponent(UITransform).setContentSize(pw - 40, ph - 160);
     }
 
@@ -173,15 +170,15 @@ export class ShopPanel extends Component {
         if (!ids || ids.length === 0) return;
 
         const colCount = 2;
-        const itemW = 300, itemH = 200;
-        const gapX = 24, gapY = 20;
+        const itemW = 310, itemH = 210;
+        const gapX = 30, gapY = 24;
 
         ids.forEach((id, index) => {
             const col = index % colCount;
             const row = Math.floor(index / colCount);
             const startX = -(colCount - 1) * (itemW + gapX) / 2;
             const x = startX + col * (itemW + gapX);
-            const y = 120 - row * (itemH + gapY);
+            const y = 95 - row * (itemH + gapY);
 
             const item = this.createSkillCard(id, x, y, itemW, itemH);
             if (item) this.itemNodes.push(item);
@@ -204,30 +201,31 @@ export class ShopPanel extends Component {
         const equippedSkills = this._pdm.getEquippedSkills();
         const isEquipped = equippedSkills.indexOf(id) !== -1;
 
-        // 图标（大）
-        this.createLabel(card, config.icon, 52, Color.WHITE,
-            -w / 2 + 55, h / 2 - 50, 80, 64);
+        // 图标（大）—— 左侧
+        this.createLabel(card, config.icon, 46, Color.WHITE,
+            -w / 2 + 50, h / 2 - 55, 80, 56);
 
-        // 类型标签
+        // 类型标签 —— 图标下方
         const typeLabel: Record<string, string> = {
-            projectile: '🔥 发射物', selfHeal: '💚 治愈', aoe: '🌀 范围', buff: '🛡️ 增益',
+            projectile: '⚔️ 剑气', selfHeal: '💚 治愈', aoe: '🌀 范围', buff: '🛡️ 增益', dash: '🌑 突刺',
         };
-        this.createLabel(card, typeLabel[config.type] || config.type, 13, new Color(180, 190, 210),
-            -w / 2 + 55, h / 2 - 88, 80, 20);
+        this.createLabel(card, typeLabel[config.type] || config.type, 12, new Color(180, 190, 210),
+            -w / 2 + 50, h / 2 - 92, 80, 18);
 
-        // 名称
-        this.createLabel(card, config.name, 24, new Color(255, 240, 200),
-            30, h / 2 - 46, w - 120, 30);
+        // 名称 —— 右侧上方
+        this.createLabel(card, config.name, 22, new Color(255, 240, 200),
+            35, h / 2 - 48, w - 115, 26);
 
-        // 描述
+        // 蓝耗/冷却 —— 名称下方
         const desc = `蓝耗:${config.manaCost}  冷却:${config.cooldown}s`;
-        this.createLabel(card, desc, 14, new Color(160, 170, 190),
-            30, h / 2 - 70, w - 120, 20);
+        this.createLabel(card, desc, 13, new Color(160, 170, 190),
+            35, h / 2 - 72, w - 115, 18);
 
+        // 技能描述 —— 右下方（避开左侧图标列和其他文字）
         if (config.description) {
-            const d = this.createLabel(card, config.description, 13, new Color(140, 150, 170),
-                0, 10, w - 24, 36);
-            if (d) d.lineHeight = 18;
+            const d = this.createLabel(card, config.description, 12, new Color(140, 150, 170),
+                25, -16, w - 95, 32);
+            if (d) d.lineHeight = 16;
         }
 
         // 底部按钮
@@ -246,7 +244,7 @@ export class ShopPanel extends Component {
                 });
         } else {
             const canAfford = this._pdm.getGold() >= config.price;
-            this.createButton(card, 'BuyBtn', 0, btnY, 140, 34,
+            this.createButton(card, 'BuyBtn', 0, btnY, 150, 34,
                 canAfford ? new Color(200, 140, 30, 255) : new Color(70, 70, 70, 255),
                 canAfford ? `🪙${config.price} 购买` : `🪙${config.price} (金币不足)`,
                 15, canAfford ? Color.WHITE : new Color(140, 140, 140),
