@@ -422,8 +422,10 @@ export class GameOverUI extends Component {
             director.resume();
         }
 
-        // 重新加载当前场景
-        director.loadScene('Level-one');
+        // 重新加载当前场景（获取当前运行中的场景名）
+        const currentScene = director.getScene()?.name || 'Level-one';
+        console.log(`🔄 重新加载场景: ${currentScene}`);
+        director.loadScene(currentScene);
     }
 
     private onBackToLevelSelect() {
