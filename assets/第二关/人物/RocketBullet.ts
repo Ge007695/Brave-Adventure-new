@@ -132,7 +132,7 @@ export class RocketBullet extends Component {
     private findEnemies(node: Node): any[] {
         const result: any[] = [];
 
-        const targets = ['Octopus', 'FinalBoss', 'Flagfish', 'HermitCrab', 'Vine'];
+        const targets = ['Octopus', 'FinalBoss', 'Flagfish', 'HermitCrab', 'Vine', 'Bee'];
         for (const name of targets) {
             const comp = node.getComponent(name);
             if (comp) {

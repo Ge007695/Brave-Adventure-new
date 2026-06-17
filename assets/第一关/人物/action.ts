@@ -531,6 +531,11 @@ export class move extends Component {
             result.push(vine);
         }
 
+        const bee = node.getComponent('Bee');
+        if (bee) {
+            result.push(bee);
+        }
+
         for (const child of node.children) {
             this.findAllAttackTargetsInChildren(child, result);
         }
