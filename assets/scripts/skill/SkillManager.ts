@@ -38,6 +38,9 @@ export class SkillManager extends Component {
     @property({ group: '⚔️ 破空斩', tooltip: '射程（0=默认500）' })
     slashRange: number = 0;
 
+    @property({ group: '⚔️ 破空斩', tooltip: '竖直判定范围（0=默认150）' })
+    slashRangeY: number = 0;
+
     @property({ group: '⚔️ 破空斩', tooltip: '飞行速度（0=默认900）' })
     slashSpeed: number = 0;
 
@@ -94,6 +97,9 @@ export class SkillManager extends Component {
             this.setupDebugSkills();
         }
 
+        // 修正旧存档：确保每个技能装在正确的固定槽位
+        this.fixSkillSlots();
+
         // Cocos 原生输入系统（主通道）
         input.on(Input.EventType.KEY_DOWN, this.onSkillKeyDown, this);
 
@@ -108,6 +114,28 @@ export class SkillManager extends Component {
 
         // 打印当前技能状态
         this.printSkillStatus();
+    }
+
+    /** 修正旧存档：确保每个已解锁的技能装在配置的固定槽位 */
+    private fixSkillSlots(): void {
+        const equipped = this._pdm.getEquippedSkills();
+        const allIds = Object.keys(SKILLS);
+
+        for (const id of allIds) {
+            if (!this._pdm.isSkillUnlocked(id)) continue;
+
+            const config = SKILLS[id];
+            if (!config) continue;
+
+            const currentSlot = equipped.indexOf(id);
+            const correctSlot = config.slot;
+
+            // 技能在错误的槽位（或根本没装备）→ 移到正确槽位
+            if (currentSlot !== correctSlot) {
+                this._pdm.equipSkill(correctSlot, id);
+                console.log(`🔧 修正技能槽位: ${config.name} → 槽位${correctSlot} [${SKILL_KEYS[correctSlot].toUpperCase()}]`);
+            }
+        }
     }
 
     /** 调试用：解锁全部技能并装备到4个槽位 */
@@ -448,7 +476,8 @@ export class SkillManager extends Component {
             const dy = Math.abs(pos.y - epos.y);
 
             // 剑气是横向宽矩形，X轴判定更宽
-            if (dx < 90 && dy < 60 && typeof enemy.takeDamage === 'function') {
+            const rangeY = this.slashRangeY > 0 ? this.slashRangeY : 150;
+            if (dx < 90 && dy < rangeY && typeof enemy.takeDamage === 'function') {
                 enemy.takeDamage(damage);
                 console.log(`⚔️ 剑气命中: ${enemy.node.name}`);
                 return true;

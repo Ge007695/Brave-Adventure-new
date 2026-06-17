@@ -8,10 +8,10 @@
     },
     "_native": "",
     "sample": 60,
-    "speed": 0.08,
+    "speed": 0.1,
     "wrapMode": 2,
     "enableTrsBlending": false,
-    "_duration": 0.1,
+    "_duration": 0.06666666666666667,
     "_hash": 500763545,
     "_tracks": [
       {
@@ -62,15 +62,15 @@
     "__type__": "cc.ObjectCurve",
     "_times": [
       0.016666666666666666,
-      0.08333333333333333
+      0.05
     ],
     "_values": [
       {
-        "__uuid__": "b3419536-51aa-4b65-977c-da7f18437ae4@f9941",
+        "__uuid__": "12427a1f-3865-4e68-95ee-a40a06294a6f@f9941",
         "__expectedType__": "cc.SpriteFrame"
       },
       {
-        "__uuid__": "c63ece79-0c70-43cc-a0fb-7795c682a072@f9941",
+        "__uuid__": "cb03c146-9133-48a3-ba36-b2c78ecda7fe@f9941",
         "__expectedType__": "cc.SpriteFrame"
       }
     ]

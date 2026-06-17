@@ -38,6 +38,9 @@ export class Bee extends Component {
     @property({ tooltip: '浮动频率' })
     wobbleFrequency: number = 3;
 
+    @property({ tooltip: '击败经验奖励（第二关小怪 = 第一关10 + 5）' })
+    expReward: number = 15;
+
     // ==================== 内部状态 ====================
 
     private _sprite: Sprite | null = null;
@@ -200,8 +203,18 @@ export class Bee extends Component {
         console.log(`🐝 蜜蜂受到 ${damage} 点伤害，剩余血量 ${this.health}`);
         if (this.health <= 0) {
             console.log('🐝 蜜蜂被击杀！');
+            this.addExp();
             this.destroyBee();
         }
+    }
+
+    private addExp() {
+        if (!this._playerNode) return;
+        let stats = this._playerNode.getComponent(PlayerStats);
+        if (!stats) {
+            stats = this._playerNode.addComponent(PlayerStats);
+        }
+        stats.addExperience(this.expReward);
     }
 
     /** 攻击命中判定位置 */

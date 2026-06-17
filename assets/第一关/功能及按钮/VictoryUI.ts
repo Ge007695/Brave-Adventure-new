@@ -38,6 +38,50 @@ export class VictoryUI extends Component {
             }
             this.container.active = true;
         }
+
+        // 冻结玩家和BOSS，防止胜利后还能移动/攻击
+        this.freezeGame();
+    }
+
+    /** 冻结玩家移动和BOSS行为 */
+    private freezeGame() {
+        const scene = director.getScene();
+        if (!scene) return;
+
+        // 冻结玩家：禁用 move 组件
+        const player = this.findPlayer(scene);
+        if (player) {
+            const moveComp = player.getComponent('move') as any;
+            if (moveComp) {
+                moveComp.enabled = false;
+                console.log('🧊 已冻结玩家移动');
+            }
+        }
+
+        // 冻结BOSS：搜索场景中所有BOSS组件并禁用
+        this.freezeBosses(scene);
+    }
+
+    /** 递归搜索并冻结所有BOSS组件 */
+    private freezeBosses(node: Node) {
+        const bossComp = node.getComponent('FinalBoss') || node.getComponent('WolfBoss');
+        if (bossComp) {
+            (bossComp as any).enabled = false;
+            console.log(`🧊 已冻结BOSS: ${node.name}`);
+        }
+        for (const child of node.children) {
+            this.freezeBosses(child);
+        }
+    }
+
+    /** 在场景树中搜索玩家节点 */
+    private findPlayer(node: Node): Node | null {
+        if (node.getComponent('move')) return node;
+        for (const child of node.children) {
+            const found = this.findPlayer(child);
+            if (found) return found;
+        }
+        return null;
     }
 
     private findCamera() {
@@ -148,19 +192,18 @@ export class VictoryUI extends Component {
         desc.horizontalAlign = Label.HorizontalAlign.CENTER;
         desc.verticalAlign = Label.VerticalAlign.CENTER;
 
-        // ── 按钮：下一关（第二关不显示） ──
-        if (!this.isFinalLevel) {
-            this.createButton(panel, 'NextBtn', -120, -80, 190, 52,
-                new Color(50, 150, 200, 255), '▶ 下一关', 24, new Color(255, 255, 255, 255),
-                () => {
-                    director.loadScene('Level-two');
-                },
-            );
-        }
+        // ── 按钮：下一关 ──
+        const nextScene = this.isFinalLevel ? 'LevelSelect' : 'Level-two';
+        const nextLabel = this.isFinalLevel ? '📋 关卡选择' : '▶ 下一关';
+        this.createButton(panel, 'NextBtn', -120, -80, 190, 52,
+            new Color(50, 150, 200, 255), nextLabel, 24, new Color(255, 255, 255, 255),
+            () => {
+                director.loadScene(nextScene);
+            },
+        );
 
-        // ── 按钮：返回主菜单（通关后居中显示） ──
-        const homeBtnX = this.isFinalLevel ? 0 : 120;
-        this.createButton(panel, 'HomeBtn', homeBtnX, -80, 190, 52,
+        // ── 按钮：返回主菜单 ──
+        this.createButton(panel, 'HomeBtn', 120, -80, 190, 52,
             new Color(60, 60, 90, 255), '🏠 返回主菜单', 22, new Color(220, 220, 240, 255),
             () => {
                 director.loadScene('LevelSelect');

@@ -4,6 +4,8 @@ import { SkillConfig, SKILLS } from './SkillConfig';
 /** 玩家持久数据结构 */
 interface PlayerData {
     gold: number;
+    level: number;
+    experience: number;
     weapons: {
         unlocked: string[];
         equipped: string;
@@ -74,19 +76,23 @@ export class PlayerDataManager {
     /** 数据迁移：补齐可能缺失的字段 */
     private migrate(data: any): PlayerData {
         const defaults = this.defaultData();
+        if (data.gold == null) data.gold = defaults.gold;
+        if (data.level == null) data.level = defaults.level;
+        if (data.experience == null) data.experience = defaults.experience;
         if (!data.weapons) data.weapons = defaults.weapons;
         if (!data.weapons.unlocked) data.weapons.unlocked = defaults.weapons.unlocked;
         if (!data.weapons.equipped) data.weapons.equipped = defaults.weapons.equipped;
         if (!data.skills) data.skills = defaults.skills;
         if (!data.skills.unlocked) data.skills.unlocked = defaults.skills.unlocked;
         if (!data.skills.equipped) data.skills.equipped = defaults.skills.equipped;
-        if (data.gold == null) data.gold = defaults.gold;
         return data as PlayerData;
     }
 
     private defaultData(): PlayerData {
         return {
             gold: 0,
+            level: 1,
+            experience: 0,
             weapons: {
                 unlocked: [DEFAULT_WEAPON_ID],
                 equipped: DEFAULT_WEAPON_ID,
@@ -256,11 +262,41 @@ export class PlayerDataManager {
         return result;
     }
 
+    // ==================== 等级 & 经验 ====================
+
+    getLevel(): number {
+        return this._data.level;
+    }
+
+    setLevel(level: number): void {
+        if (level < 1) level = 1;
+        this._data.level = level;
+        this.save();
+    }
+
+    getExperience(): number {
+        return this._data.experience;
+    }
+
+    setExperience(exp: number): void {
+        if (exp < 0) exp = 0;
+        this._data.experience = exp;
+        this.save();
+    }
+
+    /** 同时保存等级和经验（减少写入次数） */
+    saveLevelAndExp(level: number, exp: number): void {
+        this._data.level = Math.max(1, level);
+        this._data.experience = Math.max(0, exp);
+        this.save();
+    }
+
     // ==================== 调试 ====================
 
     /** 打印当前数据状态（调试用） */
     debugPrint(): void {
         console.log('── 玩家数据 ──');
+        console.log(`⭐ 等级: Lv.${this._data.level}  经验: ${this._data.experience}`);
         console.log(`🪙 金币: ${this._data.gold}`);
         console.log(`🗡️ 武器: 已解锁 [${this._data.weapons.unlocked.join(', ')}]  装备中: ${this._data.weapons.equipped}`);
         console.log(`✨ 技能: 已解锁 [${this._data.skills.unlocked.join(', ')}]  装备: [${this._data.skills.equipped.map(s => s || '空').join(', ')}]`);

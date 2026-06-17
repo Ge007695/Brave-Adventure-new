@@ -77,6 +77,9 @@ export class move extends Component {
     @property({ tooltip: '火箭攻击冷却时间（秒）' })
     rocketCD: number = 0.8;
 
+    @property({ tooltip: '火箭弹伤害（0=使用预制体默认值）' })
+    rocketDamage: number = 0;
+
     @property({ tooltip: '发射动画名称（朝右）' })
     rightLaunchAnim: string = 'rightlaunch';
 
@@ -397,6 +400,10 @@ export class move extends Component {
         const bullet = bulletNode.getComponent('RocketBullet') as any;
         if (bullet && typeof bullet.init === 'function') {
             bullet.init(dir);
+            // 编辑器覆盖伤害值
+            if (this.rocketDamage > 0) {
+                bullet.damage = this.rocketDamage;
+            }
         } else {
             console.warn('🚀 子弹预制体上未找到 RocketBullet 组件！');
         }

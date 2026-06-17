@@ -32,7 +32,7 @@ export class FinalBoss extends Component {
 
     // ── 属性 ──
     @property({ tooltip: '最大血量' })          maxHp: number = 12;
-    @property({ tooltip: '击败经验奖励' })       expReward: number = 10;
+    @property({ tooltip: '击败经验奖励' })       expReward: number = 100;
     @property({ tooltip: '击杀掉落金币' })       goldReward: number = 50;
 
     // ── 水平移动 ──

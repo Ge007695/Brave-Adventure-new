@@ -113,12 +113,15 @@ export class PlayerStatusUI extends Component {
     }
 
     private updateExpBar(current: number, level: number) {
-        if (!this.expFill || !this.expLabel || !this.levelLabel || !this.playerStats) return;
+        if (!this.expFill || !this.expLabel || !this.playerStats) return;
 
-        const percent = Math.max(0, Math.min(1, current / this.playerStats.expToLevelUp));
+        const needed = this.playerStats.getExpNeeded();
+        const percent = Math.max(0, Math.min(1, current / needed));
         this.expFill.fillRange = percent;
-        this.expLabel.string = `${current} / ${this.playerStats.expToLevelUp}`;
-        this.levelLabel.string = `Lv.${level}`;
+        this.expLabel.string = `Lv.${level}  ${current} / ${needed}`;
+        if (this.levelLabel) {
+            this.levelLabel.string = `Lv.${level}`;
+        }
     }
 
     private updateAllBars() {

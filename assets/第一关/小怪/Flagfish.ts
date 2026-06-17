@@ -1,11 +1,11 @@
-import { _decorator, Component, Sprite, SpriteFrame, Collider2D, Node, Color } from 'cc';
+import { _decorator, Component, Sprite, SpriteFrame, Collider2D, Node } from 'cc';
 import { PlayerStats } from '../人物/PlayerStats';
 const { ccclass, property } = _decorator;
 
 /**
- * 旗鱼小怪脚本
+ * 旗鱼陷阱脚本
  * 在指定范围内自动左右移动，通过代码直接切换 SpriteFrame 实现左右方向图片切换
- * 与玩家重叠时每次扣25血
+ * 与玩家重叠时每次扣25血（不可被攻击）
  */
 @ccclass('Flagfish')
 export class Flagfish extends Component {

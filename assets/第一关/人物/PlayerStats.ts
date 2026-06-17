@@ -1,4 +1,5 @@
 import { _decorator, Component, AudioSource, AudioClip } from 'cc';
+import { PlayerDataManager } from '../../scripts/data/PlayerDataManager';
 const { ccclass, property } = _decorator;
 
 @ccclass('PlayerStats')
@@ -43,17 +44,36 @@ export class PlayerStats extends Component {
     }
     
     /** 当前经验 */
-    private _experience: number = 0;
     public get experience(): number { return this._experience; }
-    
-    /** 升级所需经验 */
-    @property
-    expToLevelUp: number = 10;
-    
+
+    /** 基础升级经验：100 + (等级-1) × 20，如 Lv2→3 需 120，Lv3→4 需 140 */
+    @property({ tooltip: '基础升级经验值' })
+    baseExpToLevelUp: number = 100;
+
+    /** 当前等级升到下一级所需经验 = 100 + (当前等级 - 1) × 20 */
+    public getExpNeeded(): number {
+        return this.baseExpToLevelUp + (this._level - 1) * 20;
+    }
+
     /** 当前等级 */
     private _level: number = 1;
     public get level(): number { return this._level; }
-    
+
+    /** 当前经验 */
+    private _experience: number = 0;
+
+    /** 初始等级（在编辑器中设置，启动时自动应用属性加成） */
+    @property({ tooltip: '初始等级（启动时自动应用属性加成）' })
+    initialLevel: number = 1;
+
+    /** 初始经验（在编辑器中设置） */
+    @property({ tooltip: '初始经验值' })
+    initialExperience: number = 0;
+
+    /** 勾选后每次进入游戏自动重置为 1 级 0 经验（调试用） */
+    @property({ tooltip: '勾选后每次进入游戏重置为1级0经验' })
+    resetLevelOnStart: boolean = false;
+
     /** 回调事件 */
     public onHealthChange: ((current: number, max: number) => void) | null = null;
     public onManaChange: ((current: number, max: number) => void) | null = null;
@@ -62,6 +82,37 @@ export class PlayerStats extends Component {
     public onDeath: (() => void) | null = null;
     
     start() {
+        // 加载等级和经验
+        if (this.resetLevelOnStart) {
+            // 重置模式：强制 1 级 0 经验
+            this._level = 1;
+            this._experience = 0;
+            PlayerDataManager.getInstance().saveLevelAndExp(1, 0);
+            console.log('🔄 已重置为 1 级 0 经验');
+        } else if (this.initialLevel > 1) {
+            // 编辑器覆盖模式（调试用）
+            this._level = this.initialLevel;
+            this._experience = this.initialExperience;
+        } else {
+            // 正常模式：从持久化存档读取
+            const pdm = PlayerDataManager.getInstance();
+            const savedLevel = pdm.getLevel();
+            const savedExp = pdm.getExperience();
+            this._level = savedLevel > 1 ? savedLevel : 1;
+            this._experience = savedLevel > 1 ? savedExp : 0;
+            if (savedLevel > 1) {
+                console.log(`💾 从存档加载: Lv.${this._level}，经验 ${this._experience}`);
+            }
+        }
+
+        // 根据初始等级，应用对应的属性加成
+        if (this._level > 1) {
+            const levelBonus = (this._level - 1) * this.statPerLevel;
+            this.maxHealth += levelBonus;
+            this.maxMana += levelBonus;
+            console.log(`📊 初始等级 Lv.${this._level}，应用属性加成: +${levelBonus} 血量/魔力，升级经验: ${this.getExpNeeded()}`);
+        }
+
         this._health = this.maxHealth;
         this._mana = this.maxMana;
 
@@ -107,27 +158,43 @@ export class PlayerStats extends Component {
         this.mana += amount;
     }
     
+    /** 每次升级增加的血量和魔力上限 */
+    @property({ tooltip: '每级增加的血量和魔力上限' })
+    statPerLevel: number = 20;
+
     /** 增加经验 */
     addExperience(amount: number) {
         if (amount <= 0) return;
         this._experience += amount;
         console.log(`✨ 获得经验: ${amount}，当前经验: ${this._experience}`);
-        
-        while (this._experience >= this.expToLevelUp) {
-            this._experience -= this.expToLevelUp;
+
+        while (this._experience >= this.getExpNeeded()) {
+            this._experience -= this.getExpNeeded();
             this._level++;
-            console.log(`🎉 升级了！当前等级: ${this._level}`);
+            // 升级增加血量和魔力上限
+            this.maxHealth += this.statPerLevel;
+            this.maxMana += this.statPerLevel;
+            // 升级回满血量和魔力
+            this._health = this.maxHealth;
+            this._mana = this.maxMana;
+            console.log(`🎉 升级了！当前等级: ${this._level}，血量上限: ${this.maxHealth}，魔力上限: ${this.maxMana}`);
             if (this.onLevelUp) this.onLevelUp(this._level);
+            // 升级后刷新UI
+            if (this.onHealthChange) this.onHealthChange(this._health, this.maxHealth);
+            if (this.onManaChange) this.onManaChange(this._mana, this.maxMana);
         }
-        
+
         if (this.onExpChange) this.onExpChange(this._experience, this._level);
+
+        // 持久化存档
+        PlayerDataManager.getInstance().saveLevelAndExp(this._level, this._experience);
     }
     
     /** 重置属性 */
     reset() {
         this._health = this.maxHealth;
         this._mana = this.maxMana;
-        this._experience = 0;
-        this._level = 1;
+        this._experience = this.initialExperience;
+        this._level = this.initialLevel;
     }
 }

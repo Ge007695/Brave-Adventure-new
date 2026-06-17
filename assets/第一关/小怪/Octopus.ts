@@ -13,7 +13,7 @@ export class Octopus extends Component {
     @property({ tooltip: '受击状态显示时间(秒)' }) hitDuration: number = 0.2;
     @property({ type: GameOverUI }) gameOverUI: GameOverUI | null = null;
 
-    @property expReward: number = 1;
+    @property expReward: number = 10;
     @property maxHp: number = 3;
 
     @property({ tooltip: '移动速度(像素/秒)' }) moveSpeedX: number = 80;
@@ -134,6 +134,7 @@ export class Octopus extends Component {
         this.updateRoam(dt);
         this.updateJump(dt);
         this.updateFacing();
+        this.syncHpBarPosition();
     }
 
     private updateRoam(dt: number) {
@@ -269,6 +270,24 @@ export class Octopus extends Component {
         if (Math.abs(sx - targetScaleX) > 0.001) {
             this.node.setScale(targetScaleX, this.node.scale.y, this.node.scale.z);
         }
+
+        // 血条永远正面显示，不被章鱼翻转影响
+        if (this.hpBarBg && this.hpBarBg.isValid) {
+            const barScaleX = this.node.scale.x > 0 ? 1 : -1;
+            this.hpBarBg.setScale(barScaleX, 1, 1);
+        }
+    }
+
+    /** 同步血条世界坐标并确保渲染在最上层 */
+    private syncHpBarPosition() {
+        if (!this.hpBarBg || !this.hpBarBg.isValid) return;
+        const pos = this.node.worldPosition;
+        this.hpBarBg.setWorldPosition(pos.x, pos.y + 95, pos.z);
+        // 始终保持为最后一个子节点，确保不被平台遮挡
+        const parent = this.hpBarBg.parent;
+        if (parent && this.hpBarBg.getSiblingIndex() < parent.children.length - 1) {
+            this.hpBarBg.setSiblingIndex(parent.children.length - 1);
+        }
     }
 
     private updateHitSprite(dt: number) {
@@ -360,10 +379,18 @@ export class Octopus extends Component {
         const barWidth = 80;
         const barHeight = 10;
 
-        // ── 血条容器（背景）── 放在章鱼头顶上方
+        // ── 血条挂在 Canvas 上（渲染在最上层，不被翻转影响，不被平台遮挡）──
         this.hpBarBg = new Node('HpBarBg');
-        this.node.addChild(this.hpBarBg);
-        this.hpBarBg.setPosition(0, 95, 0);
+        const canvas = this.node.parent;
+        if (canvas) {
+            canvas.addChild(this.hpBarBg);
+            this.hpBarBg.setSiblingIndex(canvas.children.length - 1);
+        }
+        this.hpBarBg.setWorldPosition(
+            this.node.worldPosition.x,
+            this.node.worldPosition.y + 95,
+            this.node.worldPosition.z,
+        );
 
         const bgTransform = this.hpBarBg.addComponent(UITransform);
         bgTransform.setContentSize(barWidth, barHeight);
@@ -482,6 +509,10 @@ export class Octopus extends Component {
         }
 
         this.inkBullets = [];
+        // 隐藏血条（血条是父节点的子节点，章鱼 deactive 不会自动隐藏它）
+        if (this.hpBarBg && this.hpBarBg.isValid) {
+            this.hpBarBg.active = false;
+        }
         this.node.active = false;
     }
 
@@ -576,7 +607,10 @@ export class Octopus extends Component {
                 ink.destroy();
             }
         }
-
         this.inkBullets = [];
+
+        if (this.hpBarBg && this.hpBarBg.isValid) {
+            this.hpBarBg.destroy();
+        }
     }
 }

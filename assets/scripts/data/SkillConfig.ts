@@ -19,6 +19,9 @@ export enum SkillType {
     Dash = 'dash',
 }
 
+/** 技能槽 → 按键名称映射 */
+export const SKILL_SLOT_KEYS: string[] = ['Y', 'U', 'I', 'O'];
+
 /** 技能配置类型 */
 export interface SkillConfig {
     id: string;          // 唯一标识
@@ -29,6 +32,7 @@ export interface SkillConfig {
     manaCost: number;    // 释放所需魔力
     cooldown: number;    // 冷却时间（秒）
     price: number;       // 商店购买价格
+    slot: number;        // 固定技能槽位 0-3（Y/U/I/O）
 
     // 以下字段按技能类型选填
     damage?: number;     // type=projectile/aoe 时：造成的伤害
@@ -51,6 +55,7 @@ export const SKILLS: Record<string, SkillConfig> = {
         manaCost: 20,
         cooldown: 4,
         price: 50,
+        slot: 0,
         damage: 6,
         range: 500,
         speed: 900,
@@ -65,6 +70,7 @@ export const SKILLS: Record<string, SkillConfig> = {
         manaCost: 20,
         cooldown: 8,
         price: 50,
+        slot: 3,
         heal: 30,
     },
 
@@ -77,6 +83,7 @@ export const SKILLS: Record<string, SkillConfig> = {
         manaCost: 25,
         cooldown: 6,
         price: 50,
+        slot: 2,
         damage: 4,
         range: 300,
     },
@@ -90,6 +97,7 @@ export const SKILLS: Record<string, SkillConfig> = {
         manaCost: 25,
         cooldown: 8,
         price: 50,
+        slot: 1,
         damage: 5,
         range: 350,
         speed: 2400,

@@ -27,6 +27,9 @@ export class TreasureChest extends Component {
     @property({ tooltip: '触发交互的距离(像素)' })
     interactRange: number = 150;
 
+    @property({ tooltip: '提示文字在宝箱上方的偏移（像素），负数则显示在下方' })
+    promptOffsetY: number = -80;
+
     @property({ tooltip: '打开后延迟消失(秒)' })
     despawnDelay: number = 1.0;
 
@@ -96,7 +99,7 @@ export class TreasureChest extends Component {
         if (inRange && this.promptNode) {
             this.promptNode.setWorldPosition(
                 this.node.worldPosition.x,
-                this.node.worldPosition.y + 220,
+                this.node.worldPosition.y + this.promptOffsetY,
                 this.node.worldPosition.z
             );
         }

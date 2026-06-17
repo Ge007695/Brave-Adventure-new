@@ -1,6 +1,6 @@
 import { _decorator, Component, Node, Button, Label, Color, UITransform, Graphics } from 'cc';
 import { PlayerDataManager } from '../data/PlayerDataManager';
-import { SKILLS, getAllSkillIds, SkillConfig } from '../data/SkillConfig';
+import { SKILLS, getAllSkillIds, SkillConfig, SKILL_SLOT_KEYS } from '../data/SkillConfig';
 
 const { ccclass } = _decorator;
 
@@ -212,8 +212,9 @@ export class ShopPanel extends Component {
         this.createLabel(card, typeLabel[config.type] || config.type, 12, new Color(180, 190, 210),
             -w / 2 + 50, h / 2 - 92, 80, 18);
 
-        // 名称 —— 右侧上方
-        this.createLabel(card, config.name, 22, new Color(255, 240, 200),
+        // 名称 + 按键 —— 右侧上方
+        const keyName = SKILL_SLOT_KEYS[config.slot] || '?';
+        this.createLabel(card, `${config.name}  [${keyName}]`, 22, new Color(255, 240, 200),
             35, h / 2 - 48, w - 115, 26);
 
         // 蓝耗/冷却 —— 名称下方
@@ -237,8 +238,7 @@ export class ShopPanel extends Component {
             this.createButton(card, 'EquipBtn', 0, btnY, 110, 34,
                 new Color(60, 140, 80, 255), '装 备', 17, Color.WHITE,
                 () => {
-                    const slot = this.findEmptySkillSlot();
-                    this._pdm.equipSkill(slot, id);
+                    this._pdm.equipSkill(config.slot, id);
                     this.refreshGrid();
                     this.updateGoldDisplay();
                 });
@@ -251,8 +251,7 @@ export class ShopPanel extends Component {
                 () => {
                     if (this._pdm.spendGold(config.price)) {
                         this._pdm.unlockSkill(id);
-                        const slot = this.findEmptySkillSlot();
-                        this._pdm.equipSkill(slot, id);
+                        this._pdm.equipSkill(config.slot, id);
                         this.refreshGrid();
                         this.updateGoldDisplay();
                     }
@@ -260,14 +259,6 @@ export class ShopPanel extends Component {
         }
 
         return card;
-    }
-
-    private findEmptySkillSlot(): number {
-        const equipped = this._pdm.getEquippedSkills();
-        for (let i = 0; i < 4; i++) {
-            if (!equipped[i]) return i;
-        }
-        return 0;
     }
 
     private updateGoldDisplay(): void {

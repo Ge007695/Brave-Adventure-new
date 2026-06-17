@@ -1,5 +1,6 @@
 import { _decorator, Component, Node, Sprite, SpriteFrame, UITransform, Label, Color, Graphics, AudioSource, AudioClip } from 'cc';
 import { PlayerStats } from '../../第一关/人物/PlayerStats';
+import { PlayerDataManager } from '../../scripts/data/PlayerDataManager';
 
 const { ccclass, property } = _decorator;
 
@@ -37,6 +38,12 @@ export class WolfBoss extends Component {
 
     @property({ tooltip: '攻击判定范围 Y' })
     attackHitRangeY: number = 300;
+
+    @property({ tooltip: '击败经验奖励（第二关BOSS = 第一关100 + 20）' })
+    expReward: number = 120;
+
+    @property({ tooltip: '击杀掉落金币' })
+    goldReward: number = 50;
 
     // ==================== 内部状态 ====================
 
@@ -163,16 +170,7 @@ export class WolfBoss extends Component {
      * @param source  来源: 'rocket' | 'melee' | undefined
      */
     public takeDamage(damage: number, source?: string) {
-        let actualDamage = 0;
-
-        if (source === 'rocket') {
-            actualDamage = 2;
-        } else if (source === 'melee') {
-            actualDamage = 1;
-        } else {
-            // 其他来源（技能、蜜蜂等）默认1点
-            actualDamage = 1;
-        }
+        const actualDamage = Math.max(1, damage);
 
         this._currentHp -= actualDamage;
         console.log(`🐺 狼Boss受到 ${actualDamage} 点伤害 (来源: ${source || 'unknown'})，剩余HP: ${this._currentHp}/${this.maxHp}`);
@@ -203,8 +201,26 @@ export class WolfBoss extends Component {
 
     private die() {
         console.log('🐺 狼Boss被击败！');
+        this.addExp();
+        this.dropGold();
         // CameraFollow 检测到 node.active=false 后触发胜利
         this.node.active = false;
+    }
+
+    private dropGold() {
+        if (this.goldReward <= 0) return;
+        PlayerDataManager.getInstance().addGold(this.goldReward);
+        console.log(`🪙 狼Boss掉落金币 +${this.goldReward}`);
+    }
+
+    private addExp() {
+        const player = this._playerNode || this.findPlayer();
+        if (!player) return;
+        let stats = player.getComponent(PlayerStats);
+        if (!stats) {
+            stats = player.addComponent(PlayerStats);
+        }
+        stats.addExperience(this.expReward);
     }
 
     // ==================== 攻击接口（兼容火箭弹/近战/技能） ====================
