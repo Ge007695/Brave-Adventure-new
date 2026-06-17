@@ -1,5 +1,6 @@
 import { _decorator, Component, Node, view } from 'cc';
 import { FinalBoss } from '../小怪/FinalBoss';
+import { WolfBoss } from '../../第二关/小怪/WolfBoss';
 const { ccclass, property } = _decorator;
 
 @ccclass('CameraFollow')
@@ -87,7 +88,12 @@ export class CameraFollow extends Component {
             // bossNode 是空父节点，实际 BOSS（FinalBoss 脚本）在子节点上
             const bossChild = this.bossNode?.children[0];
             const bossAlive = bossChild?.activeInHierarchy ?? false;
-            if (this.bossWasActive && !bossAlive) {
+            // 也检查直接挂在bossNode上的WolfBoss
+            const wolfAlive = this.bossNode?.getComponent(WolfBoss)
+                ? this.bossNode.activeInHierarchy
+                : false;
+            const anyBossAlive = bossAlive || wolfAlive;
+            if (this.bossWasActive && !anyBossAlive) {
                 this.bossAreaLocked = false;
                 const canvas = this.node.parent;
                 if (canvas) {
@@ -98,7 +104,7 @@ export class CameraFollow extends Component {
                     }
                 }
             }
-            if (bossAlive) {
+            if (bossAlive || wolfAlive) {
                 this.bossWasActive = true;
             }
         }
@@ -142,6 +148,19 @@ export class CameraFollow extends Component {
                 this.mapRight,
                 this.bossNode.worldPosition.y,
             );
+            return;
+        }
+
+        const wolfBoss = this.bossNode.getComponent(WolfBoss);
+        if (wolfBoss) {
+            wolfBoss.init(this.target);
+            return;
+        }
+
+        // 检查子节点
+        const wolfChild = this.bossNode.getComponentInChildren(WolfBoss);
+        if (wolfChild) {
+            wolfChild.init(this.target);
         }
     }
 }

@@ -341,6 +341,15 @@ export class move extends Component {
             return;
         }
 
+        // Boss区域消耗蓝量，其他区域不消耗
+        if (this.bossAreaLocked) {
+            const stats = this.getComponent('PlayerStats') as any;
+            if (stats && typeof stats.useMana === 'function' && !stats.useMana(20)) {
+                console.log('🚀 蓝量不足，无法发射火箭！');
+                return;
+            }
+        }
+
         this.isLaunching = true;
         this.rocketTimer = this.rocketCD;
 
@@ -504,7 +513,7 @@ export class move extends Component {
             const inYRange = dy <= rangeY;
 
             if (inFront && inXRange && inYRange && typeof enemy.takeDamage === 'function') {
-                enemy.takeDamage(this.attackDamage);
+                enemy.takeDamage(this.attackDamage, 'melee');
                 hitCount++;
                 console.log(`⚔️ 攻击命中敌人: ${enemyNode.name}`);
             }
@@ -534,6 +543,11 @@ export class move extends Component {
         const bee = node.getComponent('Bee');
         if (bee) {
             result.push(bee);
+        }
+
+        const wolfBoss = node.getComponent('WolfBoss');
+        if (wolfBoss) {
+            result.push(wolfBoss);
         }
 
         for (const child of node.children) {

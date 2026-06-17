@@ -22,7 +22,7 @@ export class RocketBullet extends Component {
     damage: number = 10;
 
     @property({ tooltip: '命中检测范围（像素），子弹与敌人的距离小于此值算命中' })
-    hitRange: number = 60;
+    hitRange: number = 200;
 
     // ==================== 精灵帧（在编辑器/代码中设置） ====================
 
@@ -132,7 +132,7 @@ export class RocketBullet extends Component {
     private findEnemies(node: Node): any[] {
         const result: any[] = [];
 
-        const targets = ['Octopus', 'FinalBoss', 'Flagfish', 'HermitCrab', 'Vine', 'Bee'];
+        const targets = ['Octopus', 'FinalBoss', 'Flagfish', 'HermitCrab', 'Vine', 'Bee', 'WolfBoss'];
         for (const name of targets) {
             const comp = node.getComponent(name);
             if (comp) {
@@ -155,7 +155,10 @@ export class RocketBullet extends Component {
 
         // 调用敌人的受伤方法
         if (typeof enemy.takeDamage === 'function') {
-            enemy.takeDamage(this.damage);
+            enemy.takeDamage(this.damage, 'rocket');
+            console.log(`🚀 火箭对 ${enemyNode.name} 造成伤害`);
+        } else {
+            console.warn(`🚀 敌人 ${enemyNode.name} 没有 takeDamage 方法！`);
         }
 
         // 命中后销毁子弹

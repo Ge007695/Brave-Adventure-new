@@ -1445,7 +1445,7 @@ export class SkillManager extends Component {
 
         const search = (n: Node) => {
             // 匹配已知的敌人组件名
-            for (const compName of ['Octopus', 'FinalBoss', 'Flagfish', 'HermitCrab', 'Bee']) {
+            for (const compName of ['Octopus', 'FinalBoss', 'Flagfish', 'HermitCrab', 'Bee', 'WolfBoss']) {
                 const comp = n.getComponent(compName);
                 if (comp) {
                     result.push(comp);

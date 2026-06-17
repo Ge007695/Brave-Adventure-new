@@ -11,8 +11,8 @@ export class Bee extends Component {
     @property({ tooltip: '追踪飞行速度（像素/秒）' })
     speed: number = 150;
 
-    @property({ tooltip: '碰到玩家时的伤害' })
-    damage: number = 15;
+    @property({ tooltip: '碰到玩家时的伤害（0 = 不扣血）' })
+    damage: number = 0;
 
     @property({ tooltip: '血量（被攻击时扣除）' })
     health: number = 1;

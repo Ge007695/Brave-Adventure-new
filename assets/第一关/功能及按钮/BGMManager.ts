@@ -98,9 +98,14 @@ export class BGMManager extends Component {
 
         // 在子节点中查找是否有存活的 FinalBoss
         for (const child of this.bossNode.children) {
-            if (child.activeInHierarchy && child.getComponent('FinalBoss')) {
+            if (child.activeInHierarchy && (child.getComponent('FinalBoss') || child.getComponent('WolfBoss'))) {
                 return true;
             }
+        }
+
+        // 也检查 bossNode 自己
+        if (this.bossNode.activeInHierarchy && this.bossNode.getComponent('WolfBoss')) {
+            return true;
         }
 
         return false;
